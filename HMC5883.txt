@@ -1,0 +1,41 @@
+#define HMC5883_DEVICE_ADDRESS 0x1E
+#define HMC5883_CFG_A_REGISTER 0x00
+#define HMC5883_CFG_B_REGISTER 0x01
+#define HMC5883_MODE_REGISTER 0x02
+#define HMC5883_DO_REGISTER_START 0x03
+
+
+void HMC5883_Init(void); 
+void HMC5883_GetHeadings(void); 
+
+void HMC5883_Init(void) 
+{
+
+//HAL_I2C_Mem_Read (&hi2c2, HMC5883_DEVICE_ADDRESS, HMC5883_CFG_A_REGISTER,   );
+
+	HAL_I2C_Mem_Write(&hi2c3, HMC5883_DEVICE_ADDRESS, 0b00000000 , 1, HMC5883_CFG_A_REGISTER, 1, 1000);
+	HAL_I2C_Mem_Write(&hi2c3, HMC5883_DEVICE_ADDRESS, 0b00000001 , 1, HMC5883_CFG_B_REGISTER, 1, 1000);
+	
+//HAL_I2C_Mem_Write(&hi2c3, HMC5883l_ADDRESS, 0b00000010 , 1, HMC5883l_MR         , 1, 100);
+}
+
+
+
+int main (void) {
+
+ 	HAL_Delay(1000);
+	HMC5883_Init(0; 
+	
+	while(1) 
+	{
+	
+	HMC5883_GetHeadings(); 
+	
+	// leitura e envio 
+	// sprintf 
+	// HAL_UART_Transmit 
+
+	}
+
+
+}

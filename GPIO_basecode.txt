@@ -1,0 +1,56 @@
+#define		base_GPIOA		0x40010800
+#define		GPIOA_CRL		0x00
+#define 	GPIOA_CRH		0x04
+#define 	GPIOA_IDR		0x08
+#define 	GPIOA_ODR		0x0C
+#define 	GPIOA_BSRR		0x10
+#define 	GPIOA_BRR		0x14
+#define 	GPIOA_LOCK		0x18
+
+base_GPIOA: .word 	0x12345678
+GPIOA_CRL:	.byte 	0x00
+GPIOA_CRH	.byte 	0x04 
+GPIOA_IDR	.byte	0x08
+GPIOA_ODR	.byte	0x0C
+GPIOA_BSRR 	.byte	0x10
+GPIOA_BRR	.byte	0x14
+GPIOA_LOCK	.byte	0x18
+
+// Todos GPIOA como saída PP
+
+		LDR		R0,=base_GPIOA
+		LDR		R1,=0xBBBBBBBB
+		STR		R1,[R0, #GPIOA_CRL]	
+		LDR		R1,=0xBBBBBBBB
+		STR		R1,[R0, #GPIO_CRH]	
+
+
+loop:
+// Todos vão para '1' escrita atômica
+		BL		delay
+		LDR		R1,=0x0000FFFF
+		STR		R1,[R0, #GPIOA_BSRR]
+		
+// Todos vão para '0' escrita atômica
+		BL		delay
+		LDR		R1,=0xFFFF0000
+		STR		R1,[R0, #GPIOA_BSRR]
+		
+		B		loop
+			
+delay:
+		LDR		R7,=0			 
+loop_delay:
+		ADDS	R7,#1			
+		CMP		R7,#1000000		
+		BNE		loop_delay		
+		BX		LR			
+
+delay:
+		LDR		R7,=1000000
+loop_delay:
+		SUBS	R7,#1
+		CBNZ    R7,loop_delay
+		BX		LR
+		
+
