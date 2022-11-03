@@ -60,8 +60,8 @@ all: main-build
 main-build: eletronica_embarcada_foguete.elf secondary-outputs
 
 # Tool invocations
-eletronica_embarcada_foguete.elf eletronica_embarcada_foguete.map: $(OBJS) $(USER_OBJS) C:\Users\Mari\STM32CubeIDE\workspace_1.9.0\eletronica_embarcada_foguete\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "eletronica_embarcada_foguete.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\Mari\STM32CubeIDE\workspace_1.9.0\eletronica_embarcada_foguete\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="eletronica_embarcada_foguete.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+eletronica_embarcada_foguete.elf eletronica_embarcada_foguete.map: $(OBJS) $(USER_OBJS) C:\Users\Mariana\Desktop\TCC\eletronica_embarcada_ARM\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "eletronica_embarcada_foguete.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\Mariana\Desktop\TCC\eletronica_embarcada_ARM\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="eletronica_embarcada_foguete.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
