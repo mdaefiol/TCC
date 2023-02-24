@@ -1,0 +1,87 @@
+#include <stdio.h>
+
+typedef enum {
+    ESTABILIZACAO,
+    LANCAMENTO,
+    VOANDO_ACELERADO,
+    VOANDO_RETARDADO,
+    QUEDA_PARAQUEDAS,
+    QUEDA_COM_PARAQUEDAS,
+    POUSADO
+} Estado;
+
+int main() {
+    Estado estado_atual = ESTABILIZACAO;
+    int tempo_voo = 0;
+    int altitude = 0;
+    int velocidade = 0;
+    int aceleracao = 0;
+    int apogeu = 0;
+    int paraquedas_acionado = 0;
+
+    while(estado_atual != POUSADO) {
+        // ler dados do sensor (altitude, velocidade, aceleracao)
+        // ...
+
+        // verificar se atingiu apogeu
+        if(altitude > apogeu) {
+            apogeu = altitude;
+        }
+
+        switch(estado_atual) {
+            case ESTABILIZACAO:
+                if(aceleracao > 0) {
+                    estado_atual = LANCAMENTO;
+                }
+                break;
+            case LANCAMENTO:
+                if(velocidade > 0) {
+                    estado_atual = VOANDO_ACELERADO;
+                }
+                break;
+            case VOANDO_ACELERADO:
+                if(velocidade < 0) {
+                    estado_atual = VOANDO_RETARDADO;
+                }
+                else if(aceleracao < 0) {
+                    estado_atual = QUEDA_PARAQUEDAS;
+                    paraquedas_acionado = 1;
+                }
+                break;
+            case VOANDO_RETARDADO:
+                if(aceleracao > 0) {
+                    estado_atual = VOANDO_ACELERADO;
+                }
+                else if(aceleracao < -10) {
+                    estado_atual = QUEDA_PARAQUEDAS;
+                    paraquedas_acionado = 1;
+                }
+                break;
+            case QUEDA_PARAQUEDAS:
+                if(velocidade > -5) {
+                    estado_atual = QUEDA_COM_PARAQUEDAS;
+                }
+                break;
+            case QUEDA_COM_PARAQUEDAS:
+                if(altitude == 0) {
+                    estado_atual = POUSADO;
+                }
+                break;
+        }
+
+        // atualizar tempo de voo
+        tempo_voo++;
+    }
+
+    // imprimir informações do voo
+    printf("Tempo de voo: %d s\n", tempo_voo);
+    printf("Altitude máxima: %d m\n", apogeu);
+    if(paraquedas_acionado) {
+        printf("Paraquedas acionado\n");
+    }
+    else {
+        printf("Paraquedas não acionado\n");
+    }
+
+    return 0;
+}

@@ -1,0 +1,85 @@
+#include <stdio.h>
+
+typedef enum {
+  ESTABILIZACAO,
+  LANCADO,
+  VOANDO_ACCELERADO,
+  VOANDO_RETARDADO,
+  QUEDA,
+  QUEDA_PARAQUEDAS_ACIONADO,
+  POUSADO
+} estado_t;
+
+int main() {
+  estado_t estado_atual = ESTABILIZACAO;
+  int tempo_voo = 0;
+  int aceleracao = 0; 
+  int altura = 100; // Altura inicial em metros // deve ser recebido pelo sensor 
+  int altitude_maxima = 0; // inicializa a variavel de altitude maxima 
+
+  while (estado_atual != POUSADO) {
+    switch (estado_atual) {
+      case ESTABILIZACAO:
+        if (tempo_voo >= 10) { // precisa checar se a aceleração aumentou por com base em um numero de amostras 
+          estado_atual = LANCADO;
+        }
+        break;
+      case LANCADO:
+        if (aceleracao > 5) {
+          estado_atual = VOANDO_ACCELERADO;
+        } else if (aceleracao < -5) {
+          estado_atual = VOANDO_RETARDADO;
+        }
+        break;
+      case VOANDO_ACCELERADO:
+        if (aceleracao < 0) {
+          estado_atual = LANCADO;
+        } else if (tempo_voo >= 60) {
+          estado_atual = QUEDA;
+          altura -= 60 * (aceleracao / 2); // Atualiza altura de acordo com aceleração
+        } else if (altura > altitude_maxima) {
+          altitude_maxima = altura; // Atualiza altitude máxima
+        }
+        break;
+      case VOANDO_RETARDADO:
+        if (aceleracao > 0) {
+          estado_atual = LANCADO;
+        } else if (tempo_voo >= 60) {
+          estado_atual = QUEDA;
+          altura -= 60 * (aceleracao / 2); // Atualiza altura de acordo com aceleração
+        } else if (altura > altitude_maxima) {
+          altitude_maxima = altura; // Atualiza altitude máxima
+        }
+        break;
+      case QUEDA:
+        if (altura <= 0) {
+          estado_atual = POUSADO;
+          printf("Pouso realizado com sucesso!\n");
+        } else if (aceleracao > 5) {
+          estado_atual = QUEDA_PARAQUEDAS_ACIONADO;
+          printf("Ativar paraquedas!\n");
+        }
+        break;
+      case QUEDA_PARAQUEDAS_ACIONADO:
+        if (altura <= 0) {
+          estado_atual = POUSADO;
+          printf("Pouso realizado com sucesso!\n");
+        }
+        break;
+    }
+
+    // Simulação de leitura de sensores
+    tempo_voo += 1;
+    aceleracao = (tempo_voo < 20) ? 2 : -2; // Simula aceleracao variando
+    altura -= 2 * aceleracao; // Simula queda
+
+    // Checa apogeu
+    if (estado_atual != ESTABILIZACAO && estado_atual != POUSADO) {
+      if (aceleracao < 0 && altura < altitude_maxima) {
+        estado_atual = QUEDA;
+      }
+    }
+  }
+
+  return 0;
+}

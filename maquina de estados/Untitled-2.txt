@@ -1,0 +1,87 @@
+#include <stdio.h>
+
+typedef enum {
+    ESTABILIZANDO,
+    LANCADO,
+    VOANDO_ACELERADO,
+    VOANDO_RETARDADO,
+    QUEDA_PARAQUEDAS,
+    QUEDA_COM_PARAQUEDAS,
+    POUSADO
+} estado_t;
+
+estado_t estado_atual = ESTABILIZANDO;
+float aceleracao_atual = 0.0;
+float tempo_voo = 0.0;
+float apogeu = 0.0;
+
+void atualizar_estado(float tempo) {
+    switch (estado_atual) {
+        case ESTABILIZANDO:
+            if (aceleracao_atual > 5.0) {
+                estado_atual = LANCADO;
+            }
+            break;
+        case LANCADO:
+            tempo_voo += tempo;
+            if (aceleracao_atual > 15.0) {
+                estado_atual = VOANDO_ACELERADO;
+            }
+            break;
+        case VOANDO_ACELERADO:
+            tempo_voo += tempo;
+            if (aceleracao_atual < 10.0) {
+                estado_atual = VOANDO_RETARDADO;
+            }
+            else if (aceleracao_atual > 25.0) {
+                estado_atual = QUEDA_PARAQUEDAS;
+                apogeu = tempo_voo;
+            }
+            else if (aceleracao_atual > 9.8 && aceleracao_atual <= 10.0) {
+                printf("Veículo perto da aceleração da gravidade!\n");
+            }
+            break;
+        case VOANDO_RETARDADO:
+            tempo_voo += tempo;
+            if (aceleracao_atual > 15.0) {
+                estado_atual = VOANDO_ACELERADO;
+            }
+            else if (aceleracao_atual < 0.0) {
+                estado_atual = QUEDA_COM_PARAQUEDAS;
+            }
+            else if (aceleracao_atual > 9.8 && aceleracao_atual <= 10.0) {
+                printf("Veículo perto da aceleração da gravidade!\n");
+            }
+            break;
+        case QUEDA_PARAQUEDAS:
+            tempo_voo += tempo;
+            if (aceleracao_atual < 0.0) {
+                estado_atual = QUEDA_COM_PARAQUEDAS;
+            }
+            else if (aceleracao_atual > 5.0) {
+                estado_atual = VOANDO_RETARDADO;
+            }
+            else if (aceleracao_atual > 9.8 && aceleracao_atual <= 10.0) {
+                printf("Veículo perto da aceleração da gravidade!\n");
+            }
+            break;
+        case QUEDA_COM_PARAQUEDAS:
+            tempo_voo += tempo;
+            if (aceleracao_atual > 0.0) {
+                estado_atual = QUEDA_PARAQUEDAS;
+            }
+            else if (aceleracao_atual > -5.0) {
+                estado_atual = POUSADO;
+            }
+            else if (aceleracao_atual > -10.0 && aceleracao_atual <= -9.8) {
+                printf("Veículo perto da aceleração da gravidade!\n");
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+int main() {
+    // exemplo de atualização do estado do veículo
+   

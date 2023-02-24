@@ -1,0 +1,64 @@
+/////// filtro de kalman incompleto 
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+#define N 2  // número de estados
+#define M 2  // número de medições
+
+// Definir as matrizes A, B, H, Q e R do filtro de Kalman
+double A[N][N] = { {1, 0.01}, {0, 1} }; // matriz de transição de estados
+double B[N] = {0, 0.01}; // matriz de controle
+double H[M][N] = { {1, 0}, {0, 1} }; // matriz de observação
+double Q[N][N] = { {0.001, 0}, {0, 0.01} }; // matriz de covariância do processo
+double R[M][M] = { {0.1, 0}, {0, 0.1} }; // matriz de covariância da medição
+
+// Definir as matrizes de estado e de covariância inicial
+double x[N] = {0, 0}; // vetor de estado inicial
+double P[N][N] = { {1, 0}, {0, 1} }; // matriz de covariância inicial
+
+// Função para atualizar as matrizes de estado e de covariância usando a nova medição
+void update(double z[M]) {
+    // Predição
+    double x_pred[N];
+    double P_pred[N][N];
+    for (int i = 0; i < N; i++) {
+        x_pred[i] = 0;
+        for (int j = 0; j < N; j++) {
+            x_pred[i] += A[i][j] * x[j];
+        }
+        x_pred[i] += B[i] * 0; // sem controle
+    }
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            P_pred[i][j] = 0;
+            for (int k = 0; k < N; k++) {
+                P_pred[i][j] += A[i][k] * P[k][j] * A[j][k];
+            }
+            P_pred[i][j] += Q[i][j];
+        }
+    }
+
+    // Atualização
+    double y[M];
+    double S[M][M];
+    double K[N][M];
+    for (int i = 0; i < M; i++) {
+        y[i] = z[i];
+        for (int j = 0; j < N; j++) {
+            y[i] -= H[i][j] * x_pred[j];
+        }
+    }
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < M; j++) {
+            S[i][j] = 0;
+            for (int k = 0; k < N; k++) {
+                S[i][j] += H[i][k] * P_pred[k][j] * H[j][k];
+            }
+            S[i][j] += R[i][j];
+        }
+    }
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < M; j++) {
+            K[i][j] = 0;
+            for (int k = 0; k < N;

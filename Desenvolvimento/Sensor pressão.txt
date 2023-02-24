@@ -1,0 +1,59 @@
+// função para estimar a altitude a partir de dados de pressão: 
+
+
+//dados recebidos pela funcoa implementada no modulo do barometro:
+// temperatura em graus
+// pressao em Pa
+
+// conversão da temperatura para Kelvin: 
+ 
+
+float calcAltitude(float pressao, float pressaoNivelMar) {
+  
+  const float constanteGravidade = 9.80665;  // m/s^2
+  const float temperaturaPadrao = 288.15;    // K
+  const float constanteLapseRate = 0.0065;   // K/m
+  const float gasConstante = 8.31432;        // J/(mol*K)
+  const float massaMolarAr = 0.0289644;      // kg/mol
+
+  float altitude;
+
+  // Cálculo da temperatura a partir da pressão
+  float temperatura = temperaturaPadrao - constanteLapseRate * altitude;
+  float escalaTermica = temperatura / temperaturaPadrao;
+
+  // Cálculo da pressão a partir do nível do mar
+  float pressaoNivelAtual = pressaoNivelMar * powf(escalaTermica, constanteGravidade * massaMolarAr / (gasConstante * constanteLapseRate));
+
+  // Cálculo da altitude a partir da pressão
+  altitude = (1 - powf(pressao / pressaoNivelAtual, 1 / 5.255)) * (temperatura + 273.15) / 0.0065;
+
+  return altitude;
+}
+
+
+temperature_K = (temperature*1,8) + 32 ;
+
+#include <math.h>
+
+// Função para estimar a altitude a partir de dados de pressão e temperatura
+float calcularAltitude(float pressao, float temperature_K) {
+  const float P0 = 1013.25; // Pressão ao nível do mar (em hPa)
+  const float T0 = 288.15; // Temperatura ao nível do mar (em Kelvin)
+  const float L = 0.0065; // Taxa de variação da temperatura com a altitude (em K/m)
+  const float R = 8.31447; // Constante universal dos gases perfeitos (em J/(mol*K))
+  const float M = 0.0289644; // Massa molar do ar (em kg/mol)
+  
+  // Calcular a pressão reduzida
+  float Pr = pressao / P0;
+  
+  // Calcular a temperatura reduzida
+  float Tr = temperature_K / T0;
+  
+  // Calcular a altitude estimada
+  float altitude = (T0 / L) * (1 - pow(Pr, (R * L) / (M * g))) * (1 / Tr - 1);
+  
+  return altitude;
+}
+
+
