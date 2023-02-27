@@ -5762,7 +5762,7 @@
     (property "Reference" "LED?" (id 0) (at 196.2912 263.4996 90)
       (effects (font (size 1.27 1.27)) (justify right))
     )
-    (property "Value" "BLUE" (id 1) (at 196.2912 265.5316 90)
+    (property "Value" "Power ON" (id 1) (at 196.2912 265.5316 90)
       (effects (font (size 1.27 1.27)) (justify right))
     )
     (property "Footprint" "LED_SMD:LED_0603_1608Metric_Pad1.05x0.95mm_HandSolder" (id 2) (at 199.0852 264.7696 0)
@@ -8148,7 +8148,7 @@
       (reference "J?") (unit 1) (value "MPU6050") (footprint "")
     )
     (path "/3eb2af48-db14-40c5-89b2-80d6417d5ec9"
-      (reference "LED?") (unit 1) (value "BLUE") (footprint "LED_SMD:LED_0603_1608Metric_Pad1.05x0.95mm_HandSolder")
+      (reference "LED?") (unit 1) (value "Power ON") (footprint "LED_SMD:LED_0603_1608Metric_Pad1.05x0.95mm_HandSolder")
     )
     (path "/0e72554a-372c-4459-91eb-e0cbd9668bdb"
       (reference "Q?") (unit 1) (value "MMBT6427-F") (footprint "")
