@@ -1,0 +1,3 @@
+../Core/Src/sensores/acelerometro.c:18:6:accel_Init	32	static
+../Core/Src/sensores/acelerometro.c:46:6:read_accel	32	static
+../Core/Src/sensores/acelerometro.c:68:6:read_gyro	32	static

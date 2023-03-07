@@ -11,6 +11,7 @@ RM := rm -rf
 -include sources.mk
 -include Drivers/STM32F1xx_HAL_Driver/Src/subdir.mk
 -include Core/Startup/subdir.mk
+-include Core/Src/sensores/subdir.mk
 -include Core/Src/subdir.mk
 -include objects.mk
 
@@ -75,8 +76,8 @@ all: main-build
 main-build: software_embarcado.elf secondary-outputs
 
 # Tool invocations
-software_embarcado.elf software_embarcado.map: $(OBJS) $(USER_OBJS) /home/mariana/Área\ de\ Trabalho/software_embarcado/STM32F103CBTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-g++ -o "software_embarcado.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"/home/mariana/Área de Trabalho/software_embarcado/STM32F103CBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="software_embarcado.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
+software_embarcado.elf software_embarcado.map: $(OBJS) $(USER_OBJS) C:\Users\mdaef\Documents\GitHub\TCC\software_embarcado\STM32F103CBTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-g++ -o "software_embarcado.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\mdaef\Documents\GitHub\TCC\software_embarcado\STM32F103CBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="software_embarcado.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
