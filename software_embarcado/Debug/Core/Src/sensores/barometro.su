@@ -4,4 +4,4 @@
 ../Core/Src/sensores/barometro.c:84:9:bmp280_compensate_P_int32	328	static
 ../Core/Src/sensores/barometro.c:109:5:BMP280_Config	48	static
 ../Core/Src/sensores/barometro.c:160:6:BMP280_WakeUP	32	static
-../Core/Src/sensores/barometro.c:181:6:BMP280_Measure	8	static
+../Core/Src/sensores/barometro.c:180:6:BMP280_Measure	24	static

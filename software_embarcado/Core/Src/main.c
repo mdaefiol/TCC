@@ -64,13 +64,13 @@ static void MX_USART2_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-uint8_t datareceive[3];
+uint8_t datareceive[6];
 uint8_t datatransmit[3] = {0xAB, 0xCD, 0xEF};
 
-float pressure, temperature;
-float data_temp[15], data_press[15];
-float data_acx, data_acy, data_acz;
-float data_gcx, data_gcy, data_gcz;
+float pressure, temperature, temp[1], press[1];
+
+float data_ac[3], data_gy[3];
+uint8_t data_ad[6]= {0,1,2,3,4,5};
 
 /*
 
@@ -90,6 +90,19 @@ typedef struct {
 } DadosVeiculo;
 
 */
+
+// funcionando
+void grava_mem_acc(void){
+
+	uint16_t i;
+	uint8_t data[6];
+
+	for (i = 0; i < 6; i++) {
+		memcpy(&data[i], &data_ad[i],1);
+	}
+	FRAM_enablewrite();
+	FRAM_Write(0x6000, data, 6);
+}
 
 /* USER CODE END 0 */
 
@@ -138,16 +151,16 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
 	  FRAM_ID();
-	  FRAM_enablewrite();
-	  FRAM_Write(0x6000, datatransmit, 3);
-	  FRAM_Read(0x6000, datareceive, 3);
+	 // FRAM_enablewrite();
+	 // FRAM_Write(0x6000, datatransmit, 3);
+	  grava_mem_acc();
+	  FRAM_Read(0x6000, datareceive, 6);
 
-	  read_accel();
-	  read_gyro();
+	  read_accel(data_ac);
+	  read_gyro(data_gy);
 
-	  BMP280_Measure();
+	  BMP280_Measure(temp, press);
 	  HAL_Delay(500);
 
 	  /*

@@ -177,33 +177,28 @@ void BMP280_WakeUP(void)
  * the values will be stored in the parameters passed to the function
  */
 
-//void BMP280_Measure(float *array_t, float *array_p)
-void BMP280_Measure(void)
+void BMP280_Measure(float *temperature, float *pressure)
 {
-	//int size = 15;
-	//float data [size];
+	const int32_t INVALID_RAW_VALUE = 0x800000;
 
 	if (BMPReadRaw() == 0)
 	{
-		  if (tRaw == 0x800000) temperature = 1; // value in case temp measurement was disabled
+		  if (tRaw != INVALID_RAW_VALUE) {
+			  *temperature = (bmp280_compensate_T_int32 (tRaw))/100.0;  // temp x100
+			  }
+		  else *temperature = 1; // value in case temp measurement was disabled
+
+		  if (pRaw != INVALID_RAW_VALUE) {
+			  *pressure = (bmp280_compensate_P_int32 (pRaw));  //  Pa
+		  }
 		  else
 		  {
-			  temperature = (bmp280_compensate_T_int32 (tRaw))/100.0;  // as per datasheet, the temp is x100
+			  *pressure = 1; // value in case temp measurement was disabled
 		  }
-
-		  if (pRaw == 0x800000) pressure = 1; // value in case temp measurement was disabled
-		  else
-		  {
-			  pressure = (bmp280_compensate_P_int32 (pRaw));  // as per datasheet, the pressure is Pa
-		  }
-
 	}
 
-
-	// if the device is detached
 	else
 	{
-		temperature = pressure = 1;
+		*temperature = *pressure = 1;
 	}
-
 }

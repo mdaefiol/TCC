@@ -23,7 +23,7 @@
 
 //void read_accel (int *array_x, int *array_y, int *array_z);
 void accel_Init (void);
-void read_accel ();
-void read_gyro ();
+void read_accel(float *Accel_data);
+void read_gyro(float *Gyro_data);
 
 #endif /* INC_ACELEROMETRO_H_ */

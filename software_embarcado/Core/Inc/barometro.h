@@ -13,8 +13,7 @@
 int BMP280_Config (uint8_t osrs_t, uint8_t osrs_p, uint8_t mode, uint8_t t_sb, uint8_t filter);
 void dataRead(void);
 void BMP280_WakeUP(void);
-void BMP280_Measure(void);
-//void BMP280_Measure(float *array, float *array_p);
+void BMP280_Measure(float *temperature, float *pressure);
 
 // Oversampling definitions
 #define OSRS_OFF    	0x00
