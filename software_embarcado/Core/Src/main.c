@@ -65,44 +65,37 @@ static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN 0 */
 
 uint8_t datareceive[6];
-uint8_t datatransmit[3] = {0xAB, 0xCD, 0xEF};
+uint8_t data_ad[6]= {2,3,4,4,4};
 
-float pressure, temperature, temp[1], press[1];
-
+float pressure, temperature, altitude, temp[1], press[1];
 float data_ac[3], data_gy[3];
-uint8_t data_ad[6]= {0,1,2,3,4,5};
+float pressureSeaLevel = 101325; // pressão ao nível do mar em Pascals
 
-/*
-
+// Definindo os estados da máquina de estados
 typedef enum {
-  PARADO,
+  PAUSADO,
+  AGUARDANDO_LANCAMENTO,
   LANCADO,
-  VOO_ACCELERADO,
-  VOO_RETARDADO,
-  QUEDA_PARAQUEDAS_ACIONADO,
-  POUSADO
+  VOANDO_ACELERADO,
+  VOANDO_RETARDADO,
+  PARAQUEDAS_ACIONADO
 } Estado;
 
+// Definindo a estrutura para armazenar os dados do veículo
 typedef struct {
   float aceleracao;
   float altitude;
-  float apogeu;
-} DadosVeiculo;
+  float altitude_inicial;
+  float ultima_altitude;
+} data;
 
-*/
-
-// funcionando
-void grava_mem_acc(void){
-
-	uint16_t i;
-	uint8_t data[6];
-
-	for (i = 0; i < 6; i++) {
-		memcpy(&data[i], &data_ad[i],1);
-	}
-	FRAM_enablewrite();
-	FRAM_Write(0x6000, data, 6);
-}
+int botao = 0; // esse botao ON/OFF inicia o processo de lançamento, quando 1, entra no case de aguardando
+int checa_carga1, checa_carga2;
+int aciona_carga1 = 0;
+int aciona_carga2 = 0;
+int gravacao_de_dados = 0;
+int pisca_led = 0;
+int aciona_buzzer = 0;
 
 /* USER CODE END 0 */
 
@@ -146,97 +139,123 @@ int main(void)
 
   /* USER CODE END 2 */
 
+  // Inicializando o estado como PARADO
+  Estado estado_atual = PAUSADO;
+
+  // Loop principal da máquina de estados
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
     /* USER CODE END WHILE */
-	  FRAM_ID();
-	 // FRAM_enablewrite();
-	 // FRAM_Write(0x6000, datatransmit, 3);
-	  grava_mem_acc();
-	  FRAM_Read(0x6000, datareceive, 6);
+	uint16_t i;
+	uint8_t data[6];
 
-	  read_accel(data_ac);
-	  read_gyro(data_gy);
+	for (i = 0; i < 6; i++) {
+		memcpy(&data[i], &data_ad[i],1);
+	}
 
-	  BMP280_Measure(temp, press);
-	  HAL_Delay(500);
+	FRAM_ID();
+	FRAM_enablewrite();
+	FRAM_Write(0x6000, data, 6);
+	FRAM_Read(0x6000, datareceive, 6);
 
-	  /*
-	  DadosVeiculo dados;
-	  Estado estado = PARADO;
-	  int paraquedasAcionado = 0;
-	  int carga1Ativada = 0;
-	  int carga2Ativada = 0;
+	read_accel(data_ac);
+	read_gyro(data_gy);
 
-	  // Recebe dados do veículo (aceleração, altitude, apogeu)
-	  // A função receberDados() deve ser implementada de acordo com as necessidades do projeto.
-	  receberDados(&dados);
+	BMP280_Measure(temp, press);
 
-	  switch (estado) {
-	    case PARADO:
-	      if (dados.aceleracao > 0) {
-	        estado = LANCADO;
-	      }
-	      break;
+	altitude = (float)(44330 * (1 - pow((pressure / pressureSeaLevel), (1 / 5.255))));
+	HAL_Delay(500);
 
-	    case LANCADO:
-	      if (dados.altitude >= dados.apogeu) {
-	        estado = VOO_RETARDADO;
-	      } else if (dados.aceleracao < 0) {
-	        estado = QUEDA_PARAQUEDAS_ACIONADO;
-	        paraquedasAcionado = 1;
-	        carga1Ativada = 0;
-	        carga2Ativada = 0;
-	      }
-	        break;
+    // Obter os dados do veículo
+    Veiculo data = obterDadosDoVeiculo();
 
-	      case VOO_ACCELERADO:
-	        if (dados.aceleracao < 0) {
-	          estado = VOO_RETARDADO;
-	        }
-	        break;
+    // Verificar o estado atual e atualizar o estado da máquina de estados
+    switch (estado_atual) {
+      case PAUSADO:
+        if (botao == 1 && checa_carga1 == 0 && checa_carga2 == 0)
+        {
+           estado_atual = AGUARDANDO_LANCAMENTO;
+        }
+        else
+        {
+           gravacao_de_dados = 0;
+           estado_atual = PAUSADO;
+        }
 
-	      case VOO_RETARDADO:
-	        if (dados.aceleracao > 0) {
-	          estado = VOO_ACCELERADO;
-	        } else if (dados.altitude <= 0) {
-	          estado = POUSADO;
-	        } else if (dados.aceleracao < 0 && !paraquedasAcionado) {
-	          estado = QUEDA_PARAQUEDAS_ACIONADO;
-	          paraquedasAcionado = 1;
-	          carga1Ativada = 0;
-	          carga2Ativada = 0;
-	        }
-	        break;
+      case AGUARDANDO_LANCAMENTO:
+        if(data.aceleracao > 0 && data.altitude != data.altitude_inicial)
+        {
+          estado_atual = LANCADO;
+        }
+        else if (data.aceleracao == 0 && data.altitude == data.altitude_inicial)
+        {
+          pisca_led = 1;
+          aciona buzer = 1;
+          gravacao_de_dados = 1;
+          estado_atual = AGUARDANDO_LANCAMENTO;
+        }
+        break;
 
-	      case QUEDA_PARAQUEDAS_ACIONADO:
-	        if (dados.altitude <= 0) {
-	          estado = POUSADO;
-	        } else if (dados.aceleracao > 0) {
-	          estado = VOO_ACCELERADO;
-	          paraquedasAcionado = 0;
-	        } else if (!carga1Ativada) {
-	          ativarCarga1();
-	          carga1Ativada = 1;
-	        } else if (!carga2Ativada) {
-	          ativarCarga2();
-	          carga2Ativada = 1;
-	        }
-	        break;
+      case LANCADO:
+        if (data.aceleracao > 0)
+        {
+          estado_atual = VOANDO_ACELERADO;
+        }
+        break;
 
-	      case POUSADO:
-	        // O veículo já pousou, podemos sair do loop principal.
-	        return 0;
+      case VOANDO_ACELERADO:
+        if (data.aceleracao < -9.8)
+        {
+          estado_atual = VOANDO_RETARDADO;
+        }
+        else if (data.aceleracao > 0)
+        {
+          estado_atual = VOANDO_ACELERADO;
+        }
+        break;
 
-	      default:
-	        // Caso ocorra algum erro na máquina de estados, podemos abortar o programa.
-	        printf("Erro: estado inválido.");
+      case VOANDO_RETARDADO:
+        if (data.aceleracao > -9.8) {
+          estado_atual = VOANDO_ACELERADO;
+          data.ultima_altitude = data.altitude;
+          //printf("O veiculo estava em voo retardado a %.2f metros de altitude.\n", data.altitude);
+        }
+        else if (data.aceleracao < -9.8)
+        {
+          estado_atual = VOANDO_RETARDADO;
+        }
+        else if (data.aceleracao < 0)
+        {
+          estado_atual = PARAQUEDAS_ACIONADO;
+        }
+        break;
 
+      case PARAQUEDAS_ACIONADO:
+        if (data.aceleracao < -9.8 && data.aceleracao < 0)
+        {
+          aciona_carga1 = 1;
+          aciona_carga2 = 1;
+          estado_atual = PARAQUEDAS_ACIONADO;
+        }
+        else if (data.altitude == data.altitude_inicial && data.aceleracao == 0 && checa_carga1 == 1 && checa_carga2 == 1)
+        {
+           estado_atual = PAUSADO;
+        }
+        else
+        {
+        //  printf("O paraquedas foi acionado a uma altitude de %.2f metros.\n", veiculo.ultima_altitude);
+          return 0;
+        }
+        break;
+    }
+
+
+	/*
 	  uart_buf_len = sprintf(uart_buf, "0x%02", (unsigned int)spi_buf[0]);
 	  HAL_UART_Transmit(&huart2, (uint8_t *)uart_buf,  uart_buf_len, 100);
-      */
+    */
 
     /* USER CODE BEGIN 3 */
   }
