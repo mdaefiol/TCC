@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "barometro.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -41,6 +42,8 @@
 /* Private variables ---------------------------------------------------------*/
  I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
+DMA_HandleTypeDef hdma_i2c1_rx;
+DMA_HandleTypeDef hdma_i2c2_rx;
 
 SPI_HandleTypeDef hspi1;
 
@@ -53,6 +56,7 @@ UART_HandleTypeDef huart2;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_SPI1_Init(void);
@@ -90,12 +94,11 @@ typedef struct {
 } data;
 
 int botao = 0; // esse botao ON/OFF inicia o processo de lançamento, quando 1, entra no case de aguardando
-int checa_carga1, checa_carga2;
-int aciona_carga1 = 0;
-int aciona_carga2 = 0;
 int gravacao_de_dados = 0;
-int pisca_led = 0;
-int aciona_buzzer = 0;
+
+//int pin_state1 = 0;
+//int pin_state2 = 0;
+
 
 /* USER CODE END 0 */
 
@@ -127,27 +130,33 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_I2C1_Init();
   MX_I2C2_Init();
   MX_SPI1_Init();
   MX_USART2_UART_Init();
-
   /* USER CODE BEGIN 2 */
 
   accel_Init();
-  BMP280_Config(OSRS_2, OSRS_16, MODE_NORMAL, T_SB_0p5, IIR_16 );
+  //BMP280_Config(OSRS_2, OSRS_16, MODE_NORMAL, T_SB_0p5, IIR_16);
+
+  //pin_state1 = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14); // Lê o estado do pino GPIO14 para carga 1
+  //pin_state2 = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15); // Lê o estado do pino GPIO15 para carga 2
+
+  // INICIALIZA ESTADO DOS INDICADORES DE PRÉ LANÇAMENTO
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET); //LED
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET); //BUZER
+
+  // INICIALIZA OS PINOS DE ACIONAR CARGA
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET); // ACIONA CARGA 1 = 0
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET); //ACIONA CARGA 2 = 0
 
   /* USER CODE END 2 */
 
-  // Inicializando o estado como PARADO
-  Estado estado_atual = PAUSADO;
-
-  // Loop principal da máquina de estados
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
 	uint16_t i;
 	uint8_t data[6];
 
@@ -160,22 +169,28 @@ int main(void)
 	FRAM_Write(0x6000, data, 6);
 	FRAM_Read(0x6000, datareceive, 6);
 
-	read_accel(data_ac);
-	read_gyro(data_gy);
+	while (HAL_DMA_GetState(&hdma_i2c1_rx) != HAL_DMA_STATE_READY);
+	{
+		read_accel(data_ac);
+		read_gyro(data_gy);
+	}
 
-	BMP280_Measure(temp, press);
+	//BMP280_Measure(temp, press);
 
-	altitude = (float)(44330 * (1 - pow((pressure / pressureSeaLevel), (1 / 5.255))));
+	//altitude = (float)(44330 * (1 - pow((pressure / pressureSeaLevel), (1 / 5.255))));
 	HAL_Delay(500);
 
     // Obter os dados do veículo
-    Veiculo data = obterDadosDoVeiculo();
+    //Veiculo data = obterDadosDoVeiculo();
 
     // Verificar o estado atual e atualizar o estado da máquina de estados
-    switch (estado_atual) {
+    /*
+	switch (estado_atual) {
       case PAUSADO:
-        if (botao == 1 && checa_carga1 == 0 && checa_carga2 == 0)
+        if (botao == 1 && pin_state1 == GPIO_PIN_RESET &&  pin_state2 == GPIO_PIN_RESET)
         {
+        	// as duas cargas estao conectadas e entra em aguardar lançamento
+           data.altitude_inicial = altitude[0];
            estado_atual = AGUARDANDO_LANCAMENTO;
         }
         else
@@ -187,75 +202,73 @@ int main(void)
       case AGUARDANDO_LANCAMENTO:
         if(data.aceleracao > 0 && data.altitude != data.altitude_inicial)
         {
-          estado_atual = LANCADO;
+        	estado_atual = LANCADO;
         }
         else if (data.aceleracao == 0 && data.altitude == data.altitude_inicial)
         {
-          pisca_led = 1;
-          aciona buzer = 1;
-          gravacao_de_dados = 1;
-          estado_atual = AGUARDANDO_LANCAMENTO;
+        	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3); //LED
+        	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);//BUZER
+
+        	gravacao_de_dados = 1;
+        	estado_atual = AGUARDANDO_LANCAMENTO;
         }
         break;
 
       case LANCADO:
         if (data.aceleracao > 0)
         {
-          estado_atual = VOANDO_ACELERADO;
+        	estado_atual = VOANDO_ACELERADO;
         }
         break;
 
       case VOANDO_ACELERADO:
         if (data.aceleracao < -9.8)
         {
-          estado_atual = VOANDO_RETARDADO;
+        	estado_atual = VOANDO_RETARDADO;
         }
         else if (data.aceleracao > 0)
         {
-          estado_atual = VOANDO_ACELERADO;
+        	estado_atual = VOANDO_ACELERADO;
         }
         break;
 
       case VOANDO_RETARDADO:
         if (data.aceleracao > -9.8) {
-          estado_atual = VOANDO_ACELERADO;
-          data.ultima_altitude = data.altitude;
-          //printf("O veiculo estava em voo retardado a %.2f metros de altitude.\n", data.altitude);
+        	estado_atual = VOANDO_ACELERADO;
+			data.ultima_altitude = data.altitude;
+			//printf("O veiculo estava em voo retardado a %.2f metros de altitude.\n", data.altitude);
         }
         else if (data.aceleracao < -9.8)
         {
-          estado_atual = VOANDO_RETARDADO;
+        	estado_atual = VOANDO_RETARDADO;
         }
         else if (data.aceleracao < 0)
         {
-          estado_atual = PARAQUEDAS_ACIONADO;
+        	estado_atual = PARAQUEDAS_ACIONADO;
         }
         break;
 
       case PARAQUEDAS_ACIONADO:
         if (data.aceleracao < -9.8 && data.aceleracao < 0)
         {
-          aciona_carga1 = 1;
-          aciona_carga2 = 1;
-          estado_atual = PARAQUEDAS_ACIONADO;
+        	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET); // ACIONA CARGA 1 = 1;
+        	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET); //ACIONA CARGA 2 = 1; paraquedas on
+        	estado_atual = PARAQUEDAS_ACIONADO;
         }
-        else if (data.altitude == data.altitude_inicial && data.aceleracao == 0 && checa_carga1 == 1 && checa_carga2 == 1)
+        //revisar esse elseif
+        else if (data.altitude == data.altitude_inicial && data.aceleracao == 0 && pin_state1 == GPIO_PIN_SET &&  pin_state2 == GPIO_PIN_SET)
         {
-           estado_atual = PAUSADO;
+        	estado_atual = PAUSADO;
         }
         else
         {
         //  printf("O paraquedas foi acionado a uma altitude de %.2f metros.\n", veiculo.ultima_altitude);
-          return 0;
+        	return 0;
         }
         break;
     }
-
-
-	/*
-	  uart_buf_len = sprintf(uart_buf, "0x%02", (unsigned int)spi_buf[0]);
-	  HAL_UART_Transmit(&huart2, (uint8_t *)uart_buf,  uart_buf_len, 100);
-    */
+*/
+    /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
   }
@@ -441,6 +454,25 @@ static void MX_USART2_UART_Init(void)
 }
 
 /**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
+  /* DMA1_Channel7_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel7_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel7_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -455,16 +487,25 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_3
+                          |GPIO_PIN_4, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : PB0 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  /*Configure GPIO pins : PB0 PB12 PB13 PB3
+                           PB4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_3
+                          |GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB14 PB15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_14|GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PA10 */
