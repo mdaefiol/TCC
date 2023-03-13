@@ -25,6 +25,5 @@
 void accel_Init (void);
 void read_accel(float *Accel_data);
 void read_gyro(float *Gyro_data);
-void DMA1_IRQHandler(void);
 
 #endif /* INC_ACELEROMETRO_H_ */

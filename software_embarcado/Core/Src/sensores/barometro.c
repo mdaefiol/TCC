@@ -8,12 +8,13 @@
 #include "barometro.h"
 
 extern I2C_HandleTypeDef hi2c2;
-#define BMP280_I2C &hi2c2
+extern DMA_HandleTypeDef hdma_i2c2_rx;
 
+#define BMP280_I2C &hi2c2
 #define BMP280_ADD 0xEC //como o SDIO está no terra, o endereço c/ 7bits é 0x76, mas 0x76<<1= 0xEC
 
 extern float pressure, temperature;
-
+float pressureSeaLevel = 101325; // pressão ao nível do mar em Pascals
 
 uint8_t chipID;
 uint8_t TrimParam[36];
@@ -28,7 +29,7 @@ void dataRead(void)
 {
 	uint8_t trimdata[32];
 	// Read NVM from 0x88 to 0xA1
-	HAL_I2C_Mem_Read(BMP280_I2C, BMP280_ADD, 0x88, 1, trimdata, 25, HAL_MAX_DELAY);
+	HAL_I2C_Mem_Read(BMP280_I2C, BMP280_ADD, 0x88, 1, trimdata, 25, 1000);
 
 	dig_T1 = (trimdata[1]<<8) | trimdata[0];
 	dig_T2 = (trimdata[3]<<8) | trimdata[2];
@@ -55,7 +56,7 @@ int BMPReadRaw(void)
 	if (chipID == 0x58) //“id” register contains the chip identification number chip_id[7:0], which is 0x58
 	{
 		// Read the Registers 0xF7 to 0xFC
-		HAL_I2C_Mem_Read(BMP280_I2C, BMP280_ADD, PRESS_MSB_REG, 1, Data, 6, HAL_MAX_DELAY);
+		HAL_I2C_Mem_Read(BMP280_I2C, BMP280_ADD, PRESS_MSB_REG, 1, Data, 6, 1000);
 
 		/* Calculate the Raw data for the parameters
 		 * Here the Pressure and Temperature are in 20 bit format and humidity in 16 bit format
@@ -189,7 +190,7 @@ void BMP280_Measure(float *temperature, float *pressure)
 		  else *temperature = 1; // value in case temp measurement was disabled
 
 		  if (pRaw != INVALID_RAW_VALUE) {
-			  *pressure = (bmp280_compensate_P_int32 (pRaw));  //  Pa
+			  *pressure = (bmp280_compensate_P_int32 (pRaw))/256;  //  Pa
 		  }
 		  else
 		  {
@@ -201,4 +202,15 @@ void BMP280_Measure(float *temperature, float *pressure)
 	{
 		*temperature = *pressure = 1;
 	}
+}
+
+// Output value of “24674867” represents 24674867/256 = 96386.2 Pa = 963.862 hPa
+
+void Measure_alt(float *altitude )
+{
+	float pressure_calc[1],temperature_calc[1];
+
+	BMP280_Measure(temperature_calc, pressure_calc);
+	float pressureSeaLevel = 101325; // pressão ao nível do mar em Pascals
+	*altitude = (float)(44330 * (1 - pow((*pressure_calc / pressureSeaLevel), (1 / 5.255))));
 }

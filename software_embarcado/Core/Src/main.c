@@ -18,7 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "barometro.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -43,7 +42,6 @@
  I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
 DMA_HandleTypeDef hdma_i2c1_rx;
-DMA_HandleTypeDef hdma_i2c2_rx;
 
 SPI_HandleTypeDef hspi1;
 
@@ -71,9 +69,10 @@ static void MX_USART2_UART_Init(void);
 uint8_t datareceive[6];
 uint8_t data_ad[6]= {2,3,4,4,4};
 
-float pressure, temperature, altitude, temp[1], press[1];
+float pressure, temperature;
+float  temp[1], press[1], altitude[1];
 float data_ac[3], data_gy[3];
-float pressureSeaLevel = 101325; // pressão ao nível do mar em Pascals
+
 
 // Definindo os estados da máquina de estados
 typedef enum {
@@ -83,21 +82,21 @@ typedef enum {
   VOANDO_ACELERADO,
   VOANDO_RETARDADO,
   PARAQUEDAS_ACIONADO
-} Estado;
+} estado_t;
 
 // Definindo a estrutura para armazenar os dados do veículo
 typedef struct {
   float aceleracao;
-  float altitude;
-  float altitude_inicial;
+  float altitude_data;
+  float altitude_inicial ;
   float ultima_altitude;
-} data;
+} dados_veiculo;
 
 int botao = 0; // esse botao ON/OFF inicia o processo de lançamento, quando 1, entra no case de aguardando
 int gravacao_de_dados = 0;
 
-//int pin_state1 = 0;
-//int pin_state2 = 0;
+int pin_state1 = 0;
+int pin_state2 = 0;
 
 
 /* USER CODE END 0 */
@@ -138,18 +137,19 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   accel_Init();
-  //BMP280_Config(OSRS_2, OSRS_16, MODE_NORMAL, T_SB_0p5, IIR_16);
+  BMP280_Config(0x02, 0x05, 0x03, 0x00, 0x04);
+  estado_t estado_atual = PAUSADO;
 
-  //pin_state1 = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14); // Lê o estado do pino GPIO14 para carga 1
-  //pin_state2 = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15); // Lê o estado do pino GPIO15 para carga 2
+  pin_state1 = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14); // Lê o estado do pino GPIO14 para carga 1
+  pin_state2 = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15); // Lê o estado do pino GPIO15 para carga 2
 
   // INICIALIZA ESTADO DOS INDICADORES DE PRÉ LANÇAMENTO
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET); //LED
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET); //BUZER
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET); // LED
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET); //  BUZER
 
   // INICIALIZA OS PINOS DE ACIONAR CARGA
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET); // ACIONA CARGA 1 = 0
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET); //ACIONA CARGA 2 = 0
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET); // ACIONA CARGA 2 = 0
 
   /* USER CODE END 2 */
 
@@ -158,39 +158,48 @@ int main(void)
   while (1)
   {
 	uint16_t i;
-	uint8_t data[6];
-
+	uint8_t dado[6];
+	dados_veiculo data;
+/*
 	for (i = 0; i < 6; i++) {
 		memcpy(&data[i], &data_ad[i],1);
 	}
-
+*/
 	FRAM_ID();
 	FRAM_enablewrite();
-	FRAM_Write(0x6000, data, 6);
+	FRAM_Write(0x6000, dado, 6);
 	FRAM_Read(0x6000, datareceive, 6);
+
+	HAL_DMA_IRQHandler(&hdma_i2c1_rx);
+
+	BMP280_Measure(temp, press);
+	Measure_alt(altitude);
 
 	while (HAL_DMA_GetState(&hdma_i2c1_rx) != HAL_DMA_STATE_READY);
 	{
 		read_accel(data_ac);
 		read_gyro(data_gy);
+
 	}
 
-	//BMP280_Measure(temp, press);
-
-	//altitude = (float)(44330 * (1 - pow((pressure / pressureSeaLevel), (1 / 5.255))));
 	HAL_Delay(500);
 
     // Obter os dados do veículo
     //Veiculo data = obterDadosDoVeiculo();
 
     // Verificar o estado atual e atualizar o estado da máquina de estados
-    /*
+
+	data.altitude_data = altitude[1];
+	data.altitude_inicial = altitude[1];
+	data.ultima_altitude = altitude[1];
+
+
 	switch (estado_atual) {
       case PAUSADO:
         if (botao == 1 && pin_state1 == GPIO_PIN_RESET &&  pin_state2 == GPIO_PIN_RESET)
         {
         	// as duas cargas estao conectadas e entra em aguardar lançamento
-           data.altitude_inicial = altitude[0];
+           data.altitude_inicial = altitude[1];
            estado_atual = AGUARDANDO_LANCAMENTO;
         }
         else
@@ -200,11 +209,11 @@ int main(void)
         }
 
       case AGUARDANDO_LANCAMENTO:
-        if(data.aceleracao > 0 && data.altitude != data.altitude_inicial)
+        if(data.aceleracao > 0 && data.altitude_data != data.altitude_inicial)
         {
         	estado_atual = LANCADO;
         }
-        else if (data.aceleracao == 0 && data.altitude == data.altitude_inicial)
+        else if (data.aceleracao == 0 && data.altitude_data == data.altitude_inicial)
         {
         	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3); //LED
         	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);//BUZER
@@ -235,7 +244,7 @@ int main(void)
       case VOANDO_RETARDADO:
         if (data.aceleracao > -9.8) {
         	estado_atual = VOANDO_ACELERADO;
-			data.ultima_altitude = data.altitude;
+			data.ultima_altitude = data.altitude_data;
 			//printf("O veiculo estava em voo retardado a %.2f metros de altitude.\n", data.altitude);
         }
         else if (data.aceleracao < -9.8)
@@ -256,7 +265,7 @@ int main(void)
         	estado_atual = PARAQUEDAS_ACIONADO;
         }
         //revisar esse elseif
-        else if (data.altitude == data.altitude_inicial && data.aceleracao == 0 && pin_state1 == GPIO_PIN_SET &&  pin_state2 == GPIO_PIN_SET)
+        else if (data.altitude_data == data.altitude_inicial && data.aceleracao == 0 && pin_state1 == GPIO_PIN_SET &&  pin_state2 == GPIO_PIN_SET)
         {
         	estado_atual = PAUSADO;
         }
@@ -267,7 +276,7 @@ int main(void)
         }
         break;
     }
-*/
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -463,9 +472,6 @@ static void MX_DMA_Init(void)
   __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
-  /* DMA1_Channel5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
   /* DMA1_Channel7_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel7_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel7_IRQn);

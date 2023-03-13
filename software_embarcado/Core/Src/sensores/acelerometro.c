@@ -85,8 +85,3 @@ void read_gyro(float *Gyro_data)
 		//memcpy(&data[i*2], &Gyro_data[i], 2);
 	}
 }
-
-void DMA1_IRQHandler(void)
-{
-    HAL_DMA_IRQHandler(&hdma_i2c1_rx);
-}
