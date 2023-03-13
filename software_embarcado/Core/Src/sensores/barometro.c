@@ -209,8 +209,9 @@ void BMP280_Measure(float *temperature, float *pressure)
 void Measure_alt(float *altitude )
 {
 	float pressure_calc[1],temperature_calc[1];
+	float pressureSeaLevel = 101325; // pressão ao nível do mar em Pascals
 
 	BMP280_Measure(temperature_calc, pressure_calc);
-	float pressureSeaLevel = 101325; // pressão ao nível do mar em Pascals
+
 	*altitude = (float)(44330 * (1 - pow((*pressure_calc / pressureSeaLevel), (1 / 5.255))));
 }
