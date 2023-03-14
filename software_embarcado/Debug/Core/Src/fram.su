@@ -1,6 +1,6 @@
-../Core/Src/fram.c:27:6:FRAM_ID	8	static
-../Core/Src/fram.c:37:6:FRAM_enablewrite	8	static
-../Core/Src/fram.c:48:6:FRAM_resetWrite	16	static
-../Core/Src/fram.c:63:6:FRAM_StatusRegister	8	static
-../Core/Src/fram.c:75:6:FRAM_Write	24	static
-../Core/Src/fram.c:92:6:FRAM_Read	24	static
+../Core/Src/fram.c:26:6:FRAM_ID	8	static
+../Core/Src/fram.c:36:6:FRAM_enablewrite	8	static
+../Core/Src/fram.c:47:6:FRAM_resetWrite	16	static
+../Core/Src/fram.c:62:6:FRAM_StatusRegister	8	static
+../Core/Src/fram.c:74:6:FRAM_Write	24	static
+../Core/Src/fram.c:91:6:FRAM_Read	24	static

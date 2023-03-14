@@ -11,11 +11,11 @@ extern I2C_HandleTypeDef hi2c1;
 extern DMA_HandleTypeDef hdma_i2c1_rx;
 //extern DMA_HandleTypeDef hdma_i2c1_tx;
 
-int16_t  Accel_RAW[3], Gyro_RAW[3];
-float Accel_data[3], Gyro_data[3];
+uint16_t Accel_X_RAW, Accel_Y_RAW, Accel_Z_RAW, Gyro_X_RAW, Gyro_Y_RAW, Gyro_Z_RAW;
+AccelData acc_data;
+GyroData gy_data;
 
-
-void accel_Init (void)
+void MPU6050_Config(void)
 {
 	//MPU6050
 
@@ -48,7 +48,7 @@ void accel_Init (void)
 	}
 }
 
-void read_accel(float *Accel_data)
+void read_accel(void)
 //void read_accel(void)
 {
 	uint8_t rec_data[6];
@@ -61,27 +61,31 @@ void read_accel(float *Accel_data)
 	   dividir de acordo com o valor Full scale definido em FS_SEL
 	   FS_SEL = 0. Então, deve ser dividido por 16384 */
 
-	for (int i = 0; i < 3 ; i++ ){
-		Accel_RAW[i] = (int16_t)(rec_data[i*2] << 8 | rec_data [(i*2)+1]);
-		Accel_data[i] = (Accel_RAW[i])/16384.0;   // obtém o float g
-		//memcpy(&data[i*2], &Accel_data[i], 2);
-	}
+	Accel_X_RAW = (int16_t)(rec_data[0] << 8 | rec_data [1]);
+	Accel_Y_RAW = (int16_t)(rec_data[2] << 8 | rec_data [3]);
+	Accel_Z_RAW = (int16_t)(rec_data[4] << 8 | rec_data [5]);
+
+	acc_data.Ax = Accel_X_RAW/16384.0;  // get the float g
+	acc_data.Ay = Accel_Y_RAW/16384.0;
+	acc_data.Az = Accel_Z_RAW/16384.0;
 }
 
-void read_gyro(float *Gyro_data)
+void read_gyro(void)
 {
-	uint8_t rec_data2[6];
+	uint8_t rec_data[6];
 
 	// Lê 6 BYTES de dados a partir do registrador GYRO_XOUT_H [GIROSCÓPIO]
 	//HAL_I2C_Mem_Read(&hi2c1, MPU6050_ADDR, GYRO_XOUT_H_REG, 1, rec_data2, 6, 1000);
-	HAL_I2C_Mem_Read_DMA(&hi2c1, MPU6050_ADDR, GYRO_XOUT_H_REG, 1, rec_data2, 6);
+	HAL_I2C_Mem_Read_DMA(&hi2c1, MPU6050_ADDR, GYRO_XOUT_H_REG, 1, rec_data, 6);
 	/* converter os valores RAW em dps (°/s)
 	   dividir de acordo com o valor Full scale definido em FS_SEL
 	   FS_SEL = 0. Então, deve ser dividido por 131.0  */
 
-	for (int i = 0; i < 3 ; i++ ){
-		Gyro_RAW[i] = (int16_t)(rec_data2[i*2] << 8 | rec_data2 [(i*2)+1]);
-		Gyro_data[i] = (Gyro_RAW[i])/131.0;
-		//memcpy(&data[i*2], &Gyro_data[i], 2);
-	}
+	Gyro_X_RAW = (int16_t)(rec_data[0] << 8 | rec_data[1]);
+	Gyro_Y_RAW = (int16_t)(rec_data[2] << 8 | rec_data[3]);
+	Gyro_Z_RAW = (int16_t)(rec_data[4] << 8 | rec_data[5]);
+
+	gy_data.Gx = Gyro_X_RAW/131.0;
+	gy_data.Gy = Gyro_Y_RAW/131.0;
+	gy_data.Gz = Gyro_Z_RAW/131.0;
 }

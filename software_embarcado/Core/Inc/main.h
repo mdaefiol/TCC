@@ -31,8 +31,8 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-//#include "barometro.h"
-//#include "acelerometro.h"
+#include "barometro.h"
+#include "acelerometro.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/

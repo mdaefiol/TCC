@@ -10,6 +10,20 @@
 
 #include "stm32f1xx_hal.h"
 
+typedef struct
+{
+    float Ax; // aceleracao em x
+    float Ay; // aceleracao em y
+    float Az; // aceleracao em z
+} AccelData;
+
+typedef struct
+{
+    float Gx; // velocidade angular em x
+    float Gy; // velocidade angular em y
+    float Gz; // velocidade angular em z
+} GyroData;
+
 // ACELERÔMETRO
 #define MPU6050_ADDR 0xD0
 #define SMPLRT_DIV_REG 0x19
@@ -22,8 +36,8 @@
 #define WHO_AM_I_REG 0x75
 
 //void read_accel (int *array_x, int *array_y, int *array_z);
-void accel_Init (void);
-void read_accel(float *Accel_data);
-void read_gyro(float *Gyro_data);
+void MPU6050_Config(void);
+void read_accel(void);
+void read_gyro(void);
 
 #endif /* INC_ACELEROMETRO_H_ */

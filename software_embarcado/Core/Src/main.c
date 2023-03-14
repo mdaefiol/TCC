@@ -73,6 +73,10 @@ float pressure, temperature;
 float  temp[1], press[1], altitude[1];
 float data_ac[3], data_gy[3];
 
+uint8_t button = 0; // esse botao ON/OFF inicia o processo de lançamento, quando 1, entra no case de aguardando
+uint8_t start_recording = 0;
+uint8_t pin_state1;
+uint8_t pin_state2;
 
 // Definindo os estados da máquina de estados
 typedef enum {
@@ -82,7 +86,7 @@ typedef enum {
   VOANDO_ACELERADO,
   VOANDO_RETARDADO,
   PARAQUEDAS_ACIONADO
-} estado_t;
+} state;
 
 // Definindo a estrutura para armazenar os dados do veículo
 typedef struct {
@@ -90,13 +94,7 @@ typedef struct {
   float altitude_data;
   float altitude_inicial ;
   float ultima_altitude;
-} dados_veiculo;
-
-int botao = 0; // esse botao ON/OFF inicia o processo de lançamento, quando 1, entra no case de aguardando
-int gravacao_de_dados = 0;
-
-int pin_state1 = 0;
-int pin_state2 = 0;
+} data_vehicle;
 
 
 /* USER CODE END 0 */
@@ -114,42 +112,53 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	HAL_Init();
 
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
 
   /* Configure the system clock */
-  SystemClock_Config();
+	SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_DMA_Init();
-  MX_I2C1_Init();
-  MX_I2C2_Init();
-  MX_SPI1_Init();
-  MX_USART2_UART_Init();
+	MX_GPIO_Init();
+	MX_DMA_Init();
+	MX_I2C1_Init();
+	MX_I2C2_Init();
+	MX_SPI1_Init();
+	MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  accel_Init();
-  BMP280_Config(0x02, 0x05, 0x03, 0x00, 0x04);
-  estado_t estado_atual = PAUSADO;
-
-  pin_state1 = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14); // Lê o estado do pino GPIO14 para carga 1
-  pin_state2 = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15); // Lê o estado do pino GPIO15 para carga 2
-
   // INICIALIZA ESTADO DOS INDICADORES DE PRÉ LANÇAMENTO
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET); // LED
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET); //  BUZER
+	state current_state = PAUSADO;
+	data_vehicle data;
+	//AccelData acc_data;
+
+	data.altitude_data = altitude[1];
+	data.altitude_inicial = altitude[1];
+	data.ultima_altitude = altitude[1];
+	data.aceleracao = 0;
+
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET); // LED
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET); // BUZER
 
   // INICIALIZA OS PINOS DE ACIONAR CARGA
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET); // ACIONA CARGA 1 = 0
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET); // ACIONA CARGA 2 = 0
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET); // ACIONA CARGA 1 = 0
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET); // ACIONA CARGA 2 = 0
+
+	pin_state1 = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14); // Lê o estado do pino GPIO14 para carga 1
+	pin_state2 = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15); // Lê o estado do pino GPIO15 para carga 2
+
+  // CONFIGURAÇÃO DE SENSORES
+	MPU6050_Config();
+	HAL_DMA_IRQHandler(&hdma_i2c1_rx);
+
+	BMP280_Config(0x02, 0x05, 0x03, 0x00, 0x04);
 
   /* USER CODE END 2 */
 
@@ -157,103 +166,100 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	uint16_t i;
-	uint8_t dado[6];
-	dados_veiculo data;
 /*
+ * 	uint16_t i;
 	for (i = 0; i < 6; i++) {
 		memcpy(&data[i], &data_ad[i],1);
 	}
 */
+	while (HAL_DMA_GetState(&hdma_i2c1_rx) != HAL_DMA_STATE_READY);
+	{
+		read_accel();
+	}
+	uint8_t dado[6];
+
 	FRAM_ID();
 	FRAM_enablewrite();
 	FRAM_Write(0x6000, dado, 6);
 	FRAM_Read(0x6000, datareceive, 6);
 
-	HAL_DMA_IRQHandler(&hdma_i2c1_rx);
-
 	BMP280_Measure(temp, press);
 	Measure_alt(altitude);
 
-	while (HAL_DMA_GetState(&hdma_i2c1_rx) != HAL_DMA_STATE_READY);
-	{
-		read_accel(data_ac);
-		read_gyro(data_gy);
+/*
+	void record_data(void){
+
+
+		if (start_recording == 1)
+		{
+
+		}
 
 	}
+*/
+	HAL_Delay(100);
 
-	HAL_Delay(500);
-
-    // Obter os dados do veículo
-    //Veiculo data = obterDadosDoVeiculo();
-
-    // Verificar o estado atual e atualizar o estado da máquina de estados
-
-	data.altitude_data = altitude[1];
-	data.altitude_inicial = altitude[1];
-	data.ultima_altitude = altitude[1];
-
-
-	switch (estado_atual) {
+	switch (current_state) {
       case PAUSADO:
-        if (botao == 1 && pin_state1 == GPIO_PIN_RESET &&  pin_state2 == GPIO_PIN_RESET)
+        if (button == 1 && pin_state1 == GPIO_PIN_RESET &&  pin_state2 == GPIO_PIN_RESET)
         {
         	// as duas cargas estao conectadas e entra em aguardar lançamento
            data.altitude_inicial = altitude[1];
-           estado_atual = AGUARDANDO_LANCAMENTO;
+           current_state = AGUARDANDO_LANCAMENTO;
         }
         else
         {
-           gravacao_de_dados = 0;
-           estado_atual = PAUSADO;
+        	start_recording = 0;
+        	current_state = PAUSADO;
         }
 
       case AGUARDANDO_LANCAMENTO:
         if(data.aceleracao > 0 && data.altitude_data != data.altitude_inicial)
         {
-        	estado_atual = LANCADO;
+        	current_state = LANCADO;
         }
         else if (data.aceleracao == 0 && data.altitude_data == data.altitude_inicial)
         {
         	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3); //LED
         	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);//BUZER
 
-        	gravacao_de_dados = 1;
-        	estado_atual = AGUARDANDO_LANCAMENTO;
+        	start_recording = 1;
+
+        	current_state = AGUARDANDO_LANCAMENTO;
         }
         break;
 
       case LANCADO:
         if (data.aceleracao > 0)
         {
-        	estado_atual = VOANDO_ACELERADO;
+        	current_state = VOANDO_ACELERADO;
         }
         break;
 
       case VOANDO_ACELERADO:
         if (data.aceleracao < -9.8)
         {
-        	estado_atual = VOANDO_RETARDADO;
+        	current_state = VOANDO_RETARDADO;
         }
         else if (data.aceleracao > 0)
         {
-        	estado_atual = VOANDO_ACELERADO;
+        	current_state = VOANDO_ACELERADO;
         }
         break;
 
       case VOANDO_RETARDADO:
         if (data.aceleracao > -9.8) {
-        	estado_atual = VOANDO_ACELERADO;
+        	current_state = VOANDO_ACELERADO;
 			data.ultima_altitude = data.altitude_data;
 			//printf("O veiculo estava em voo retardado a %.2f metros de altitude.\n", data.altitude);
         }
         else if (data.aceleracao < -9.8)
         {
-        	estado_atual = VOANDO_RETARDADO;
+        	current_state = VOANDO_RETARDADO;
         }
         else if (data.aceleracao < 0)
         {
-        	estado_atual = PARAQUEDAS_ACIONADO;
+        	current_state = PARAQUEDAS_ACIONADO;
         }
         break;
 
@@ -262,12 +268,12 @@ int main(void)
         {
         	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET); // ACIONA CARGA 1 = 1;
         	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET); //ACIONA CARGA 2 = 1; paraquedas on
-        	estado_atual = PARAQUEDAS_ACIONADO;
+        	current_state = PARAQUEDAS_ACIONADO;
         }
         //revisar esse elseif
         else if (data.altitude_data == data.altitude_inicial && data.aceleracao == 0 && pin_state1 == GPIO_PIN_SET &&  pin_state2 == GPIO_PIN_SET)
         {
-        	estado_atual = PAUSADO;
+        	current_state = PAUSADO;
         }
         else
         {

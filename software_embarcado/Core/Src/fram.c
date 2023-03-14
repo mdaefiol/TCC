@@ -22,7 +22,6 @@ uint8_t RDIDI  = 0x9F;
 char bytes_ID[4] = {0};
 char bytes_status[3] = {0} ;
 
-uint8_t wip;
 
 void FRAM_ID(void){
 
