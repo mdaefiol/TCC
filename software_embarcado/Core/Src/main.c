@@ -66,12 +66,9 @@ static void MX_USART2_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-uint8_t datareceive[6];
-uint8_t data_ad[6]= {2,3,4,4,4};
-
-float pressure, temperature;
-float  temp[1], press[1], altitude[1];
-float data_ac[3], data_gy[3];
+#define ALFA 0.5
+#define CYCLES_TO_STORE 20
+#define MEMORY_SIZE 100
 
 uint8_t button = 0; // esse botao ON/OFF inicia o processo de lançamento, quando 1, entra no case de aguardando
 uint8_t start_recording = 0;
@@ -97,6 +94,7 @@ typedef struct {
 } data_vehicle;
 
 
+
 /* USER CODE END 0 */
 
 /**
@@ -112,37 +110,31 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
 
   /* Configure the system clock */
-	SystemClock_Config();
+  SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-	MX_GPIO_Init();
-	MX_DMA_Init();
-	MX_I2C1_Init();
-	MX_I2C2_Init();
-	MX_SPI1_Init();
-	MX_USART2_UART_Init();
+  MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_I2C1_Init();
+  MX_I2C2_Init();
+  MX_SPI1_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
   // INICIALIZA ESTADO DOS INDICADORES DE PRÉ LANÇAMENTO
 	state current_state = PAUSADO;
 	data_vehicle data;
-	//AccelData acc_data;
-
-	data.altitude_data = altitude[1];
-	data.altitude_inicial = altitude[1];
-	data.ultima_altitude = altitude[1];
-	data.aceleracao = 0;
 
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET); // LED
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET); // BUZER
@@ -160,6 +152,29 @@ int main(void)
 
 	BMP280_Config(0x02, 0x05, 0x03, 0x00, 0x04);
 
+  // MÉDIA MÓVEL EXPONENCIAL
+    AccelData accel_data;
+    float ema_x = 0.0, ema_y = 0.0, ema_z = 0.0;
+    float new_x, new_y, new_z;
+    int cycle_count = 0;
+    float memory_x[MEMORY_SIZE], memory_y[MEMORY_SIZE], memory_z[MEMORY_SIZE];
+    float memory_a[MEMORY_SIZE] = {0};
+    float data_receive[MEMORY_SIZE];
+    //float *memory_x, *memory_y, *memory_z;
+    int memory_index = 0;
+
+/*
+    memory_x = (float *) malloc(MEMORY_SIZE * sizeof(float));
+    memory_y = (float *) malloc(MEMORY_SIZE * sizeof(float));
+    memory_z = (float *) malloc(MEMORY_SIZE * sizeof(float));
+
+    if (memory_x == NULL || memory_y == NULL || memory_z == NULL) {
+        printf("Erro: não foi possível alocar memória.\n");
+        exit(1);
+    }
+*/
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -172,42 +187,78 @@ int main(void)
 		memcpy(&data[i], &data_ad[i],1);
 	}
 */
+	if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_9) == GPIO_PIN_RESET){ // botão pressionado
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET); // aciona o LED
+
+	}
+	else // botão não pressionado
+	{
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET); // desliga o LED
+	}
+
+
 	while (HAL_DMA_GetState(&hdma_i2c1_rx) != HAL_DMA_STATE_READY);
 	{
 		read_accel();
 	}
-	uint8_t dado[6];
 
+    new_x = accel_data.Ax; // função que lê a aceleração no eixo X
+    new_y = accel_data.Ay; // função que lê a aceleração no eixo Y
+    new_z = accel_data.Az; // função que lê a aceleração no eixo Z
+
+	// Calcular EMA para cada eixo
+    ema_x = (1 - ALFA)*ema_x + ALFA *new_x;
+    ema_y = (1 - ALFA)*ema_y + ALFA *new_y;
+    ema_z = (1 - ALFA)*ema_z + ALFA *new_z;
+    cycle_count++;
+
+    if (cycle_count == CYCLES_TO_STORE) {
+    	memory_x[memory_index] = ema_x;
+    	memory_y[memory_index] = ema_y;
+    	memory_z[memory_index] = ema_z;
+    	memory_index++;
+    	cycle_count = 0;
+
+    	if (memory_index == MEMORY_SIZE) {
+    		// Enviar valores armazenados na FRAM
+    		//FRAM_enablewrite();
+    		//FRAM_Write(0x6000, memory_y, MEMORY_SIZE);
+    		//FRAM_Read(0x6000, data_receive, MEMORY_SIZE);
+    		//send_to_fram(memory_x, memory_y, memory_z, MEMORY_SIZE);
+    		memory_index = 0;
+         }
+
+    }
+   // free(memory_x);
+   // free(memory_y);
+   // free(memory_z);
+    FRAM_ID();
+    FRAM_enablewrite();
+    FRAM_Write(0x6000, memory_a, MEMORY_SIZE);
+    FRAM_Read(0x6000, data_receive, MEMORY_SIZE);
+	HAL_Delay(1000);
+
+	/*
+	uint8_t dado[6];
 	FRAM_ID();
 	FRAM_enablewrite();
 	FRAM_Write(0x6000, dado, 6);
 	FRAM_Read(0x6000, datareceive, 6);
 
-	BMP280_Measure(temp, press);
-	Measure_alt(altitude);
-
-/*
-	void record_data(void){
-
-
-		if (start_recording == 1)
-		{
-
-		}
-
-	}
-*/
-	HAL_Delay(100);
+	BMP280_Measure();
 
 	switch (current_state) {
       case PAUSADO:
-        if (button == 1 && pin_state1 == GPIO_PIN_RESET &&  pin_state2 == GPIO_PIN_RESET)
+        if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_9) == GPIO_PIN_RESET && pin_state1 == GPIO_PIN_RESET &&  pin_state2 == GPIO_PIN_RESET)
         {
-        	// as duas cargas estao conectadas e entra em aguardar lançamento
-           data.altitude_inicial = altitude[1];
-           current_state = AGUARDANDO_LANCAMENTO;
+			//GPIO_PIN_RESET = botão pressionado
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET); // aciona o LED para indicar gravação
+
+			// as duas cargas estao conectadas e entra em aguardar lançamento
+			data.altitude_inicial = altitude[1];
+			current_state = AGUARDANDO_LANCAMENTO;
         }
-        else
+        else if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_9) == GPIO_PIN_SET)
         {
         	start_recording = 0;
         	current_state = PAUSADO;
@@ -282,7 +333,7 @@ int main(void)
         }
         break;
     }
-
+/*
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -503,7 +554,7 @@ static void MX_GPIO_Init(void)
                           |GPIO_PIN_4, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8|GPIO_PIN_10, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : PB0 PB12 PB13 PB3
                            PB4 */
@@ -520,11 +571,17 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PA10 */
-  GPIO_InitStruct.Pin = GPIO_PIN_10;
+  /*Configure GPIO pins : PA8 PA10 */
+  GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA9 */
+  GPIO_InitStruct.Pin = GPIO_PIN_9;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 }

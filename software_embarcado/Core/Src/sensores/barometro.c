@@ -13,18 +13,17 @@ extern DMA_HandleTypeDef hdma_i2c2_rx;
 #define BMP280_I2C &hi2c2
 #define BMP280_ADD 0xEC //como o SDIO está no terra, o endereço c/ 7bits é 0x76, mas 0x76<<1= 0xEC
 
-extern float pressure, temperature;
-float pressureSeaLevel = 101325; // pressão ao nível do mar em Pascals
+BMP280_data bmp_data;
 
+uint16_t dig_T1,dig_P1;
+uint16_t  dig_T2, dig_T3, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9;
 uint8_t chipID;
 uint8_t TrimParam[36];
 int32_t tRaw, pRaw;
-uint16_t dig_T1,dig_P1;
-int16_t  dig_T2, dig_T3, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9;
 
+float pressureSeaLevel = 101325;
 
 // leitura de corte, sao dados armazenados na memoria do sensor (ja vem de fabrica) e precisam ser utilizados para calculos dos novos valores
-
 void dataRead(void)
 {
 	uint8_t trimdata[32];
@@ -178,40 +177,33 @@ void BMP280_WakeUP(void)
  * the values will be stored in the parameters passed to the function
  */
 
-void BMP280_Measure(float *temperature, float *pressure)
+void BMP280_Measure(void)
 {
 	const int32_t INVALID_RAW_VALUE = 0x800000;
 
 	if (BMPReadRaw() == 0)
 	{
 		  if (tRaw != INVALID_RAW_VALUE) {
-			  *temperature = (bmp280_compensate_T_int32 (tRaw))/100.0;  // temp x100
-			  }
-		  else *temperature = 1; // value in case temp measurement was disabled
+			  bmp_data.temperature = (bmp280_compensate_T_int32 (tRaw))/100.0;  // temp x100
+		  }
+		  else bmp_data.temperature = 1; // value in case temp measurement was disabled
 
 		  if (pRaw != INVALID_RAW_VALUE) {
-			  *pressure = (bmp280_compensate_P_int32 (pRaw))/256;  //  Pa
+			  bmp_data.pressure = (bmp280_compensate_P_int32 (pRaw))/-256;  //  Pa
 		  }
 		  else
 		  {
-			  *pressure = 1; // value in case temp measurement was disabled
+			  bmp_data.pressure = 1; // value in case temp measurement was disabled
 		  }
 	}
 
 	else
 	{
-		*temperature = *pressure = 1;
+		bmp_data.temperature = bmp_data.pressure = 1;
 	}
+	float bmp_pressure = bmp_data.pressure;
+
+	bmp_data.altitude = (float)(44330 * (1 - (pow((bmp_pressure/ pressureSeaLevel), (1/5.255)))));
 }
 
 // Output value of “24674867” represents 24674867/256 = 96386.2 Pa = 963.862 hPa
-
-void Measure_alt(float *altitude )
-{
-	float pressure_calc[1],temperature_calc[1];
-	float pressureSeaLevel = 101325; // pressão ao nível do mar em Pascals
-
-	BMP280_Measure(temperature_calc, pressure_calc);
-
-	*altitude = (float)(44330 * (1 - pow((*pressure_calc / pressureSeaLevel), (1 / 5.255))));
-}

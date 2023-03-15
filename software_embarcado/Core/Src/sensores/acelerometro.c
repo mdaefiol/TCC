@@ -18,33 +18,27 @@ GyroData gy_data;
 void MPU6050_Config(void)
 {
 	//MPU6050
-
 	uint8_t check;
 	uint8_t data;
 
 	HAL_I2C_Mem_Read(&hi2c1, MPU6050_ADDR, WHO_AM_I_REG, 1, &check, 1, 1000); 	// WHO_AM_I ~ 6050
-	//HAL_I2C_Mem_Read_DMA(&hi2c1, MPU6050_ADDR, WHO_AM_I_REG, 1, &check, 1);
 
 	if (check == 104) // devise is present
 	{
 		// power management register 0x6B we should write all 0s to wake the sensor up
 		data = 0;
 		HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR, PWR_MGMT_1_REG, 1, &data, 1, 1000);
-		//HAL_I2C_Mem_Write_DMA(&hi2c1, MPU6050_ADDR, PWR_MGMT_1_REG, 1, &data, 1);
 
 		// set DATA RATE of 1KHz by writing SMPLRT_DIV register
 		data  =  0x07;
 		HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR, SMPLRT_DIV_REG, 1, &data, 1, 1000);
-		//HAL_I2C_Mem_Write_DMA(&hi2c1, MPU6050_ADDR, SMPLRT_DIV_REG, 1, &data, 1);
 
 		// set accelerometer e gyroscopic configuration in ACCEL_CONFIG and GYRO_CONFIG
 		data = 0x00;
 		HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR, SMPLRT_DIV_REG, 1, &data, 1, 1000);
-		//HAL_I2C_Mem_Write_DMA(&hi2c1, MPU6050_ADDR, SMPLRT_DIV_REG, 1, &data, 1);
 
 		data = 0x00;
 		HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR, GYRO_CONFIG_REG, 1, &data, 1, 1000);
-		//HAL_I2C_Mem_Write_DMA(&hi2c1, MPU6050_ADDR, GYRO_CONFIG_REG, 1, &data, 1);
 	}
 }
 
@@ -54,7 +48,6 @@ void read_accel(void)
 	uint8_t rec_data[6];
 
 	// Lê 6 BYTES de dados a partir do registrador ACCEL_XOUT_H [ACELERÔMETRO]
-	//HAL_I2C_Mem_Read(&hi2c1, MPU6050_ADDR, ACCEL_XOUT_H_REG, 1, rec_data, 6, 1000);
 	HAL_I2C_Mem_Read_DMA(&hi2c1, MPU6050_ADDR, ACCEL_XOUT_H_REG, 1, rec_data, 6);
 
 	/* converter os valores RAW em aceleração em 'g'
@@ -75,7 +68,6 @@ void read_gyro(void)
 	uint8_t rec_data[6];
 
 	// Lê 6 BYTES de dados a partir do registrador GYRO_XOUT_H [GIROSCÓPIO]
-	//HAL_I2C_Mem_Read(&hi2c1, MPU6050_ADDR, GYRO_XOUT_H_REG, 1, rec_data2, 6, 1000);
 	HAL_I2C_Mem_Read_DMA(&hi2c1, MPU6050_ADDR, GYRO_XOUT_H_REG, 1, rec_data, 6);
 	/* converter os valores RAW em dps (°/s)
 	   dividir de acordo com o valor Full scale definido em FS_SEL
