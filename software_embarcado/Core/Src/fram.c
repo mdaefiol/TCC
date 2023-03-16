@@ -70,7 +70,6 @@ void FRAM_StatusRegister(void){
 
 }
 
-
 void FRAM_Write(uint16_t address, uint8_t *data, uint16_t size){
 
 	// write
@@ -102,6 +101,22 @@ void FRAM_Read(uint16_t address, uint8_t *data_receive, uint16_t size){
 	HAL_SPI_Receive(&hspi1, data_receive, size, 100); //recebe dado
 
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
+}
+
+void SendData_to_FRAM(float *memory_x, float *memory_y, float *memory_z, int size) {
+
+	// Escreve os dados na FRAM
+    for (int i = 0; i < size; i++) {
+        // Seleciona o dispositivo
+    	FRAM_enablewrite();
+
+        // Escreve os dados de aceleração nos três eixos
+        uint8_t data[12];
+        memcpy(data, &memory_x[i], 4);
+        memcpy(data + 4, &memory_y[i], 4);
+        memcpy(data + 8, &memory_z[i], 4);
+        FRAM_Write(0x6000, data, 12);
+    }
 }
 
 /*

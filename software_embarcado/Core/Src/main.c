@@ -39,7 +39,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
- I2C_HandleTypeDef hi2c1;
+I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
 DMA_HandleTypeDef hdma_i2c1_rx;
 
@@ -66,9 +66,7 @@ static void MX_USART2_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-#define ALFA 0.5
-#define CYCLES_TO_STORE 20
-#define MEMORY_SIZE 100
+#define MEMORY_SIZE 20
 
 uint8_t button = 0; // esse botao ON/OFF inicia o processo de lançamento, quando 1, entra no case de aguardando
 uint8_t start_recording = 0;
@@ -92,8 +90,6 @@ typedef struct {
   float altitude_inicial ;
   float ultima_altitude;
 } data_vehicle;
-
-
 
 /* USER CODE END 0 */
 
@@ -154,14 +150,12 @@ int main(void)
 
   // MÉDIA MÓVEL EXPONENCIAL
     AccelData accel_data;
-    float ema_x = 0.0, ema_y = 0.0, ema_z = 0.0;
-    float new_x, new_y, new_z;
-    int cycle_count = 0;
-    float memory_x[MEMORY_SIZE], memory_y[MEMORY_SIZE], memory_z[MEMORY_SIZE];
-    float memory_a[MEMORY_SIZE] = {0};
-    float data_receive[MEMORY_SIZE];
-    //float *memory_x, *memory_y, *memory_z;
+    float alpha = 0.2;
+    float memory_x[MEMORY_SIZE];
+    float memory_y[MEMORY_SIZE];
+    float memory_z[MEMORY_SIZE];
     int memory_index = 0;
+    float data_receive[200];
 
 /*
     memory_x = (float *) malloc(MEMORY_SIZE * sizeof(float));
@@ -187,76 +181,35 @@ int main(void)
 		memcpy(&data[i], &data_ad[i],1);
 	}
 */
-	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_1); // aciona o LED
-	HAL_Delay(500);
-	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_9); // LED INDICAÇÃO AGUARDANDO LANÇAMENTO
-	HAL_Delay(500);
-	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_8); // LED INDICAÇÃO GRAVANDO DADOS
-	HAL_Delay(500);
-
-//	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
-	if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_9) == GPIO_PIN_RESET){ // botão pressionado
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET); // aciona o LED
-		//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET); // aciona o LED
-		//HAL_Delay(1000);
-		//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
-
-	}
-	else // botão não pressionado
-	{
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET); // desliga o LED
-	}
-
+	FRAM_ID();
 
 	while (HAL_DMA_GetState(&hdma_i2c1_rx) != HAL_DMA_STATE_READY);
 	{
 		read_accel();
 	}
 
-    new_x = accel_data.Ax; // função que lê a aceleração no eixo X
-    new_y = accel_data.Ay; // função que lê a aceleração no eixo Y
-    new_z = accel_data.Az; // função que lê a aceleração no eixo Z
+	float accel_x = accel_data.Ax; // função que lê a aceleração no eixo X
+	float accel_y = accel_data.Ay; // função que lê a aceleração no eixo Y
+	float accel_z = accel_data.Az; // função que lê a aceleração no eixo Z
 
 	// Calcular EMA para cada eixo
-    ema_x = (1 - ALFA)*ema_x + ALFA *new_x;
-    ema_y = (1 - ALFA)*ema_y + ALFA *new_y;
-    ema_z = (1 - ALFA)*ema_z + ALFA *new_z;
-    cycle_count++;
+	memory_x[memory_index] = alpha * accel_x + (1 - alpha) * memory_x[memory_index];
+	memory_y[memory_index] = alpha * accel_y + (1 - alpha) * memory_y[memory_index];
+	memory_z[memory_index] = alpha * accel_z + (1 - alpha) * memory_z[memory_index];
 
-    if (cycle_count == CYCLES_TO_STORE) {
-    	memory_x[memory_index] = ema_x;
-    	memory_y[memory_index] = ema_y;
-    	memory_z[memory_index] = ema_z;
-    	memory_index++;
-    	cycle_count = 0;
+	memory_index = (memory_index + 1) % MEMORY_SIZE;
+	if (memory_index == 0) {
+		// Envia os dados para a FRAM
+		SendData_to_FRAM(memory_x, memory_y, memory_z, MEMORY_SIZE);
+	}
+	FRAM_Read(0x6000, data_receive, 200);
+	HAL_Delay(10);
 
-    	if (memory_index == MEMORY_SIZE) {
-    		// Enviar valores armazenados na FRAM
-    		FRAM_enablewrite();
-    		FRAM_Write(0x6000, memory_y, MEMORY_SIZE);
-    		FRAM_Read(0x6000, data_receive, MEMORY_SIZE);
-    		memory_index = 0;
-         }
-
-    }
    // free(memory_x);
    // free(memory_y);
    // free(memory_z);
-    FRAM_ID();
-   //FRAM_enablewrite();
-   // FRAM_Write(0x6000, memory_a, MEMORY_SIZE);
-    FRAM_Read(0x6000, data_receive, MEMORY_SIZE);
-	HAL_Delay(300);
 
 	/*
-	uint8_t dado[6];
-	FRAM_ID();
-	FRAM_enablewrite();
-	FRAM_Write(0x6000, dado, 6);
-	FRAM_Read(0x6000, datareceive, 6);
-
-	BMP280_Measure();
-
 	switch (current_state) {
       case PAUSADO:
         if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_9) == GPIO_PIN_RESET && pin_state1 == GPIO_PIN_RESET &&  pin_state2 == GPIO_PIN_RESET)

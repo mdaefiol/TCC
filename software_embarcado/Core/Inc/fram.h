@@ -13,12 +13,11 @@
 //char spi_buf3[10] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 void FRAM_ID(void);
-//void FRAM_StatusRegister(void);
 void FRAM_enablewrite(void);
 void FRAM_resetWrite(void);
-void FRAM_MaskOut(void);
+void FRAM_StatusRegister(void);
 void FRAM_Write(uint16_t address, uint8_t *data, uint16_t size);
 void FRAM_Read(uint16_t address, uint8_t *data_receive, uint16_t size);
-//void Transaction(void);
+void SendData_to_FRAM(float *memory_x, float *memory_y, float *memory_z, int size);
 
 #endif /* INC_FRAM_H_ */
