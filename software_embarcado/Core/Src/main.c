@@ -187,8 +187,19 @@ int main(void)
 		memcpy(&data[i], &data_ad[i],1);
 	}
 */
+	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_1); // aciona o LED
+	HAL_Delay(500);
+	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_9); // LED INDICAÇÃO AGUARDANDO LANÇAMENTO
+	HAL_Delay(500);
+	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_8); // LED INDICAÇÃO GRAVANDO DADOS
+	HAL_Delay(500);
+
+//	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
 	if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_9) == GPIO_PIN_RESET){ // botão pressionado
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET); // aciona o LED
+		//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET); // aciona o LED
+		//HAL_Delay(1000);
+		//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
 
 	}
 	else // botão não pressionado
@@ -221,10 +232,9 @@ int main(void)
 
     	if (memory_index == MEMORY_SIZE) {
     		// Enviar valores armazenados na FRAM
-    		//FRAM_enablewrite();
-    		//FRAM_Write(0x6000, memory_y, MEMORY_SIZE);
-    		//FRAM_Read(0x6000, data_receive, MEMORY_SIZE);
-    		//send_to_fram(memory_x, memory_y, memory_z, MEMORY_SIZE);
+    		FRAM_enablewrite();
+    		FRAM_Write(0x6000, memory_y, MEMORY_SIZE);
+    		FRAM_Read(0x6000, data_receive, MEMORY_SIZE);
     		memory_index = 0;
          }
 
@@ -233,10 +243,10 @@ int main(void)
    // free(memory_y);
    // free(memory_z);
     FRAM_ID();
-    FRAM_enablewrite();
-    FRAM_Write(0x6000, memory_a, MEMORY_SIZE);
+   //FRAM_enablewrite();
+   // FRAM_Write(0x6000, memory_a, MEMORY_SIZE);
     FRAM_Read(0x6000, data_receive, MEMORY_SIZE);
-	HAL_Delay(1000);
+	HAL_Delay(300);
 
 	/*
 	uint8_t dado[6];
@@ -261,6 +271,7 @@ int main(void)
         else if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_9) == GPIO_PIN_SET)
         {
         	start_recording = 0;
+        	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_8);
         	current_state = PAUSADO;
         }
 
@@ -271,11 +282,13 @@ int main(void)
         }
         else if (data.aceleracao == 0 && data.altitude_data == data.altitude_inicial)
         {
-        	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3); //LED
-        	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);//BUZER
+			HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_1); // BUZZER
+			HAL_Delay(100);
+			HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_9); // LED INDICAÇÃO AGUARDANDO LANÇAMENTO
+			HAL_Delay(100);
 
         	start_recording = 1;
-
+	 	 	 // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_8); // LED INDICAÇÃO GRAVANDO DADOS
         	current_state = AGUARDANDO_LANCAMENTO;
         }
         break;
@@ -550,16 +563,23 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_3
-                          |GPIO_PIN_4, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1|GPIO_PIN_8|GPIO_PIN_10, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8|GPIO_PIN_10, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_8
+                          |GPIO_PIN_9, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : PB0 PB12 PB13 PB3
-                           PB4 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_3
-                          |GPIO_PIN_4;
+  /*Configure GPIO pins : PA1 PA8 PA10 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_8|GPIO_PIN_10;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB0 PB12 PB13 PB8
+                           PB9 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_8
+                          |GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -570,13 +590,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PA8 PA10 */
-  GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_10;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PA9 */
   GPIO_InitStruct.Pin = GPIO_PIN_9;
