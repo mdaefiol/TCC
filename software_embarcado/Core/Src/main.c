@@ -157,16 +157,16 @@ int main(void)
     int memory_index = 0;
     float data_receive[200];
 
-/*
-    memory_x = (float *) malloc(MEMORY_SIZE * sizeof(float));
-    memory_y = (float *) malloc(MEMORY_SIZE * sizeof(float));
-    memory_z = (float *) malloc(MEMORY_SIZE * sizeof(float));
+
+    memory_x[memory_index] = (float *) malloc(MEMORY_SIZE * sizeof(float));
+    memory_y[memory_index] = (float *) malloc(MEMORY_SIZE * sizeof(float));
+    memory_z[memory_index] = (float *) malloc(MEMORY_SIZE * sizeof(float));
 
     if (memory_x == NULL || memory_y == NULL || memory_z == NULL) {
         printf("Erro: não foi possível alocar memória.\n");
         exit(1);
     }
-*/
+
 
 
   /* USER CODE END 2 */
@@ -198,6 +198,7 @@ int main(void)
 	memory_z[memory_index] = alpha * accel_z + (1 - alpha) * memory_z[memory_index];
 
 	memory_index = (memory_index + 1) % MEMORY_SIZE;
+
 	if (memory_index == 0) {
 		// Envia os dados para a FRAM
 		SendData_to_FRAM(memory_x, memory_y, memory_z, MEMORY_SIZE);
