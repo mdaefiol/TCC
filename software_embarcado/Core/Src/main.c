@@ -157,11 +157,11 @@ int main(void)
     int memory_index = 0;
     float data_receive[200];
 
-
+/*
     memory_x[memory_index] = (float *) malloc(MEMORY_SIZE * sizeof(float));
     memory_y[memory_index] = (float *) malloc(MEMORY_SIZE * sizeof(float));
     memory_z[memory_index] = (float *) malloc(MEMORY_SIZE * sizeof(float));
-
+*/
     if (memory_x == NULL || memory_y == NULL || memory_z == NULL) {
         printf("Erro: não foi possível alocar memória.\n");
         exit(1);
