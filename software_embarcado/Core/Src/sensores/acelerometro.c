@@ -9,6 +9,11 @@
 
 extern I2C_HandleTypeDef hi2c1;
 extern DMA_HandleTypeDef hdma_i2c1_rx;
+
+HAL_DMA_StateTypeDef status1;
+HAL_DMA_CallbackIDTypeDef ret1;
+HAL_DMA_LevelCompleteTypeDef x1;
+HAL_DMA_LevelCompleteTypeDef x2;
 //extern DMA_HandleTypeDef hdma_i2c1_tx;
 
 uint16_t Accel_X_RAW, Accel_Y_RAW, Accel_Z_RAW, Gyro_X_RAW, Gyro_Y_RAW, Gyro_Z_RAW;
@@ -46,9 +51,17 @@ void read_accel(void)
 //void read_accel(void)
 {
 	uint8_t rec_data[6];
-
+	//ret1 = HAL_I2C_Mem_Read_DMA(&hi2c1, MPU6050_ADDR, ACCEL_XOUT_H_REG, 1, rec_data, 6);
 	// Lê 6 BYTES de dados a partir do registrador ACCEL_XOUT_H [ACELERÔMETRO]
+	status1 = HAL_I2C_Mem_Read_DMA(&hi2c1, MPU6050_ADDR, ACCEL_XOUT_H_REG, 1, rec_data, 6);
+
 	HAL_I2C_Mem_Read_DMA(&hi2c1, MPU6050_ADDR, ACCEL_XOUT_H_REG, 1, rec_data, 6);
+	x1 = HAL_I2C_Mem_Read_DMA(&hi2c1, MPU6050_ADDR, ACCEL_XOUT_H_REG, 1, rec_data, 6);
+	while (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY); // Espera a transferência DMA ser completada
+	x2 = HAL_I2C_Mem_Read_DMA(&hi2c1, MPU6050_ADDR, ACCEL_XOUT_H_REG, 1, rec_data, 6);
+	ret1 = HAL_I2C_Mem_Read_DMA(&hi2c1, MPU6050_ADDR, ACCEL_XOUT_H_REG, 1, rec_data, 6);
+
+
 
 	/* converter os valores RAW em aceleração em 'g'
 	   dividir de acordo com o valor Full scale definido em FS_SEL
@@ -61,6 +74,7 @@ void read_accel(void)
 	acc_data.Ax = Accel_X_RAW/16384.0;  // get the float g
 	acc_data.Ay = Accel_Y_RAW/16384.0;
 	acc_data.Az = Accel_Z_RAW/16384.0;
+	//ret3 = HAL_I2C_Mem_Read_DMA(&hi2c1, MPU6050_ADDR, ACCEL_XOUT_H_REG, 1, rec_data, 6);
 }
 
 void read_gyro(void)
@@ -69,6 +83,8 @@ void read_gyro(void)
 
 	// Lê 6 BYTES de dados a partir do registrador GYRO_XOUT_H [GIROSCÓPIO]
 	HAL_I2C_Mem_Read_DMA(&hi2c1, MPU6050_ADDR, GYRO_XOUT_H_REG, 1, rec_data, 6);
+	//ret3 = HAL_I2C_Mem_Read_DMA(&hi2c1, MPU6050_ADDR, GYRO_XOUT_H_REG, 1, rec_data, 6);
+
 	/* converter os valores RAW em dps (°/s)
 	   dividir de acordo com o valor Full scale definido em FS_SEL
 	   FS_SEL = 0. Então, deve ser dividido por 131.0  */

@@ -151,16 +151,16 @@ int main(void)
   // MÉDIA MÓVEL EXPONENCIAL
     AccelData accel_data;
     float alpha = 0.2;
-    float memory_x[MEMORY_SIZE];
-    float memory_y[MEMORY_SIZE];
-    float memory_z[MEMORY_SIZE];
+    double memory_x[MEMORY_SIZE];
+    double memory_y[MEMORY_SIZE];
+    double memory_z[MEMORY_SIZE];
     int memory_index = 0;
     float data_receive[200];
 
 /*
-    memory_x[memory_index] = (float *) malloc(MEMORY_SIZE * sizeof(float));
-    memory_y[memory_index] = (float *) malloc(MEMORY_SIZE * sizeof(float));
-    memory_z[memory_index] = (float *) malloc(MEMORY_SIZE * sizeof(float));
+   // memory_x[memory_index] = (float *) malloc(MEMORY_SIZE * sizeof(float));
+   // memory_y[memory_index] = (float *) malloc(MEMORY_SIZE * sizeof(float));
+   // memory_z[memory_index] = (float *) malloc(MEMORY_SIZE * sizeof(float));
 */
     if (memory_x == NULL || memory_y == NULL || memory_z == NULL) {
         printf("Erro: não foi possível alocar memória.\n");
@@ -201,7 +201,7 @@ int main(void)
 
 	if (memory_index == 0) {
 		// Envia os dados para a FRAM
-		SendData_to_FRAM(memory_x, memory_y, memory_z, MEMORY_SIZE);
+
 	}
 	FRAM_Read(0x6000, data_receive, 200);
 	HAL_Delay(10);
