@@ -1,7 +1,0 @@
-../Core/Src/sensores/barometro.c:27:6:dataRead	56	static
-../Core/Src/sensores/barometro.c:48:5:BMPReadRaw	32	static
-../Core/Src/sensores/barometro.c:73:9:bmp280_compensate_T_int32	32	static
-../Core/Src/sensores/barometro.c:84:9:bmp280_compensate_P_int32	328	static
-../Core/Src/sensores/barometro.c:109:5:BMP280_Config	48	static
-../Core/Src/sensores/barometro.c:160:6:BMP280_WakeUP	32	static
-../Core/Src/sensores/barometro.c:180:6:BMP280_Measure	16	static

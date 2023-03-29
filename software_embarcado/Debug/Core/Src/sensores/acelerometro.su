@@ -1,3 +1,0 @@
-../Core/Src/sensores/acelerometro.c:23:6:MPU6050_Config	32	static
-../Core/Src/sensores/acelerometro.c:50:6:read_accel	24	static
-../Core/Src/sensores/acelerometro.c:80:6:read_gyro	24	static
