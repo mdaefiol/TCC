@@ -1,0 +1,70 @@
+	 /*
+	  	  // MAQUINA DE ESTADOS DO FOGUETE
+	  	  switch (current_state) {
+	        case PAUSADO:
+	      	// pin_state1 e pin_state2 == RESET -> há carga
+	          if (pin_state1 == GPIO_PIN_RESET && pin_state2 == GPIO_PIN_RESET && pin_button == GPIO_PIN_SET)
+	          {
+	        	//FRAM_state = FRAM_READ_ID;							// LEITURA DE ID PARA HABILITAR FUNCIONAMENTO FRAM
+	          															// ***** JA FOI INICIADA A AQUISIÇÃO DE DADOS *****
+	  			current_state = AGUARDANDO_LANCAMENTO;
+	  																	// CARGAS ESTÃO CONECTADAS, ENTRE EM ESTADO DE AGUARDANDO LANÇAMENTO
+	          }
+	          else {
+	        	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET); // LED VERMELHO para indicar PAUSA
+	          }
+
+	        case AGUARDANDO_LANCAMENTO:
+	          if(data_vehicle.aceleracao_atual > data_vehicle.aceleracao_calibracao && data_vehicle.altitude_atual > data_vehicle.altitude_calibracao)
+	          {
+				// *************** ADICIONAR GRAVAÇAO ****************
+	        	// gravaçao de dados pela FRAM
+	          	current_state = LANCADO;
+	          }
+	          else
+	          {
+	        	  	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET); 	// BUZZER INDICA AGUARDANDO LANÇAMENTO
+	        		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_SET); 	// LED AMARELO INDICAÇÃO AGUARDANDO LANÇAMENTO
+	        		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET); 	// DESLIGA LED VERMELHO
+
+	          	current_state = AGUARDANDO_LANCAMENTO;
+	          }
+	          break;
+
+	        case LANCADO:
+	          if (data_vehicle.aceleracao_atual > 0 && data_vehicle.aceleracao_atual > data_vehicle.aceleracao_anterior)
+	          {
+	        	  	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);	// DESLIGA BUZZER
+	        	  	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET);	// DESLIGA LED AMARELO
+	        	  	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5,GPIO_PIN_SET); 	// LIGA LED VERDE DE LANÇADO
+	          	current_state = VOANDO_ACELERADO;
+	          }
+	          break;
+
+	        case VOANDO_ACELERADO:
+	          if (data_vehicle.altitude_atual <  data_vehicle.altitude_anterior) {
+	           //current_state = VOANDO_ACELERADO;
+
+	          	current_state = PARAQUEDAS_ACIONADO;
+	    			// guarda a ultima altitude pois atingiu o apogeu
+	          }
+	          break;
+
+
+	        case PARAQUEDAS_ACIONADO:
+	          if (data_vehicle.aceleracao_atual < 0 && data_vehicle.altitude_atual <  data_vehicle.altitude_anterior )
+	          {
+	        	  	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5,GPIO_PIN_RESET); 	// DESLIGA O LED VERDE
+	          	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET); // ACIONA CARGA 1 = 1;
+	          	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_SET); // ACIONA CARGA 2 = 1; paraquedas on
+	          }
+	          //revisar esse elseif
+	          else if (data_vehicle.altitude_atual == data_vehicle.altitude_calibracao && data_vehicle.aceleracao_atual == data_vehicle.aceleracao_calibracao && pin_state1 == GPIO_PIN_SET &&  pin_state2 == GPIO_PIN_SET)
+	          {
+	          	current_state = PAUSADO;
+	          	// finaliza gravaçao de dados pela FRAM
+	          	return 0;
+	          }
+	          break;
+	      }
+*/

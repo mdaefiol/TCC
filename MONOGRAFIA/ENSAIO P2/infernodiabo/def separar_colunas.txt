@@ -1,0 +1,16 @@
+def separar_colunas(nome_arquivo):
+    with open(nome_arquivo, 'r') as arquivo:
+        linhas = arquivo.readlines()
+
+        for i, linha in enumerate(linhas):
+            colunas = linha.strip().split(' ')
+
+            for j, coluna in enumerate(colunas):
+                nome_novo_arquivo = f'coluna_baromet{j + 1}.txt'
+                with open(nome_novo_arquivo, 'a') as novo_arquivo:
+                    novo_arquivo.write(coluna + '\n')
+
+
+# Exemplo de uso
+nome_arquivo = 'barometer.txt'
+separar_colunas(nome_arquivo)
